@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+from argparse import ArgumentParser
 from collections import defaultdict
 import xml.etree.ElementTree as ET
 
@@ -73,6 +75,26 @@ class Test_demultiplexing(TestCase):
 
     def test_demultiplexing_report_wiki(self):
         self.assertTrue(demultiplexing_report_wiki(self.xml_file))
+
+
+def main():
+    #Setup options
+    argparser=_prepare_argparser()
+    args = argparser.parse_args()
+    print demultiplexing_report_wiki(args.xml_file)
+
+
+def _prepare_argparser():
+    """Prepare optparser object. New arguments will be added in this
+    function first.
+    """
+    description = """Simple script that parse demultiplexed xml file and generate an wiki table"""
+
+    argparser = ArgumentParser(description=description)
+
+    argparser.add_argument("-x", "--xml-file", dest="xml_file", type=str, help="The demultiplexed_Stats.xml to parse.")
+    return argparser
+
 
 if __name__=="__main__":
     main()
