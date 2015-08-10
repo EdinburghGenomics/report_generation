@@ -1,4 +1,4 @@
-from demultiplexing_report import demultiplexing_report_wiki
+from demultiplexing_report import  Demultiplexing_report
 from report_generation.readers.demultiplexing_parsers import parse_conversion_stats, parse_demultiplexing_stats
 
 __author__ = 'tcezard'
@@ -20,7 +20,7 @@ class Test_demultiplexing(TestCase):
         self.assertTrue(top_unknown_barcodes_per_lanes)
 
     def test_demultiplexing_report(self):
-        report = demultiplexing_report_wiki(self.xml_file2)
+        report = Demultiplexing_report(self.xml_file2)
         self.assertTrue(report)
         print(report)
 
