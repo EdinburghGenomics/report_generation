@@ -1,15 +1,15 @@
+import os
 from demultiplexing_report import  Demultiplexing_report
 from report_generation.readers.demultiplexing_parsers import parse_conversion_stats, parse_demultiplexing_stats
+from test import TestReport
 
 __author__ = 'tcezard'
 
-from unittest import TestCase
 
-
-class Test_demultiplexing(TestCase):
+class Test_demultiplexing(TestReport):
     def setUp(self):
-        self.xml_file1 = '../test_data/DemultiplexingStats.xml'
-        self.xml_file2 = '../test_data/ConversionStats.xml'
+        self.xml_file1 = os.path.join(self.test_data_path,'DemultiplexingStats.xml')
+        self.xml_file2 = os.path.join(self.test_data_path,'ConversionStats.xml')
 
     def test_parse_demultiplexing_stats(self):
         self.assertTrue(parse_demultiplexing_stats(self.xml_file1))
@@ -22,5 +22,4 @@ class Test_demultiplexing(TestCase):
     def test_demultiplexing_report(self):
         report = Demultiplexing_report(self.xml_file2)
         self.assertTrue(report)
-        print(report)
 
