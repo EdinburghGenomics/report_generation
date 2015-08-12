@@ -2,6 +2,7 @@
 from argparse import ArgumentParser
 from collections import defaultdict, Counter
 import glob
+import logging
 import os
 import xml.etree.ElementTree as ET
 from report_generation.readers.demultiplexing_parsers import parse_demultiplexing_stats, parse_conversion_stats
@@ -23,6 +24,8 @@ class Bcbio_report:
         for bcbio_dir in self.bcbio_dirs:
             line = []
             lib_name = get_library_name_from_dir(bcbio_dir)
+            if lib_name is None:
+                continue
             bamtools_path = os.path.join(bcbio_dir,'final', lib_name, 'qc','bamtools', 'bamtools_stats.txt')
             total_reads, mapped_reads, duplicate_reads, proper_pairs = parse_bamtools_stats(bamtools_path)
             line.append(lib_name)
@@ -34,7 +37,7 @@ class Bcbio_report:
             coverage_per_type = parse_callable_bed_file(bed_file_path)
             callable_bases = coverage_per_type.get('CALLABLE')
             total = sum(coverage_per_type.values())
-            line.append('%.2f%%'%(callable_bases/total))
+            line.append('%.2f%%'%(callable_bases/total*100))
             table.append('| %s |'%' | '.join(line))
         return table
 
@@ -52,7 +55,11 @@ def get_library_name_from_dir(bcbio_dir):
     paths = glob.glob(os.path.join(bcbio_dir,'final','*','qc'))
     if paths and len(paths)==1:
         return os.path.basename(os.path.dirname(paths[0]))
+    elif len(paths)>1:
+        logging.error('More than one library found in {}'.format(bcbio_dir))
+        return None
     else:
+        logging.error('No library found in {}'.format(bcbio_dir))
         return None
 
 def main():
