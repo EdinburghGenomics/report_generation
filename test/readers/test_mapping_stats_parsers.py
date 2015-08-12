@@ -27,5 +27,4 @@ class Test_mapping_stats(TestReport):
 
     def test_bcbio_reportp(self):
         report = Bcbio_report([self.bcbio_dir])
-        print(report)
         self.assertTrue(report)

@@ -55,16 +55,14 @@ class Demultiplexing_report:
         table = []
         table.append('|| %s ||'%' || '.join(['Lane', 'Barcode', 'Nb of Read', '% of Unexpected', '% of Lane']))
         for lane, barcode, clust_count in self.top_unknown_barcodes_per_lanes:
-            clust_count_total = self.data_per_lane.get(lane).get('total_pf')
+            clust_count_pass_filter = self.data_per_lane.get(lane).get('total_pf')
             d, d, clust_count_unknown, clust_count_pf_unknown, d,d,d = self.data_per_lane.get(lane).get('unknown')
-            if barcode.startswith('NNNNNN'):
-                clust_count = int(clust_count) - (int(clust_count_unknown) - int(clust_count_pf_unknown))
             line = []
             line.append(lane)
             line.append(barcode)
             line.append(str(clust_count))
             line.append('%.2f%%'%(float(clust_count)/float(clust_count_pf_unknown)*100))
-            line.append('%.2f%%'%(float(clust_count)/float(clust_count_total)*100))
+            line.append('%.2f%%'%(float(clust_count)/float(clust_count_pass_filter)*100))
             table.append('| %s |'%' | '.join(line))
         return table
 
