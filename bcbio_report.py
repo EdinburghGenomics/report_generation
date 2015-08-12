@@ -6,7 +6,8 @@ import logging
 import os
 import xml.etree.ElementTree as ET
 from report_generation.readers.demultiplexing_parsers import parse_demultiplexing_stats, parse_conversion_stats
-from report_generation.readers.mapping_stats_parsers import parse_bamtools_stats, parse_callable_bed_file
+from report_generation.readers.mapping_stats_parsers import parse_bamtools_stats, parse_callable_bed_file, \
+    parse_highdepth_yaml_file
 
 __author__ = 'tcezard'
 
@@ -19,7 +20,8 @@ class Bcbio_report:
 
     def _write_mapping_stats_report(self):
         table = []
-        header = ['Library Id', 'Reads in Bam', 'Reads mapped', 'Duplicated reads', 'Proper pair reads', '%callable bases']
+        header = ['Library Id', 'Reads in Bam', 'Reads mapped', 'Duplicated reads', 'Proper pair reads',
+                  'median coverage', '%callable bases']
         table.append('|| %s ||'%' || '.join(header))
         for bcbio_dir in self.bcbio_dirs:
             line = []
@@ -33,11 +35,16 @@ class Bcbio_report:
             line.append(str(mapped_reads))
             line.append(str(duplicate_reads))
             line.append(str(proper_pairs))
+
             bed_file_path = os.path.join(bcbio_dir,'work', 'align', lib_name,'%s-sort-callable.bed'%lib_name)
             coverage_per_type = parse_callable_bed_file(bed_file_path)
             callable_bases = coverage_per_type.get('CALLABLE')
             total = sum(coverage_per_type.values())
             line.append('%.2f%%'%(callable_bases/total*100))
+
+            yaml_metric_path = os.path.join(bcbio_dir,'work', 'align', lib_name,'%s-sort-highdepth-stats.yaml'%lib_name)
+            median_coverage  = parse_highdepth_yaml_file(yaml_metric_path)
+            line.append(str(median_coverage))
             table.append('| %s |'%' | '.join(line))
         return table
 
