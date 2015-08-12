@@ -40,14 +40,16 @@ class Bcbio_report:
             line.append(format_longint(proper_pairs))
             line.append(format_percent(proper_pairs/float(mapped_reads)))
 
+            yaml_metric_path = os.path.join(bcbio_dir,'work', 'align', lib_name,'%s-sort-highdepth-stats.yaml'%lib_name)
+            median_coverage  = parse_highdepth_yaml_file(yaml_metric_path)
+            line.append(format_float(median_coverage))
+
             bed_file_path = os.path.join(bcbio_dir,'work', 'align', lib_name,'%s-sort-callable.bed'%lib_name)
             coverage_per_type = parse_callable_bed_file(bed_file_path)
             callable_bases = coverage_per_type.get('CALLABLE')
             total = sum(coverage_per_type.values())
             line.append(format_percent(callable_bases/total))
-            yaml_metric_path = os.path.join(bcbio_dir,'work', 'align', lib_name,'%s-sort-highdepth-stats.yaml'%lib_name)
-            median_coverage  = parse_highdepth_yaml_file(yaml_metric_path)
-            line.append(format_float(median_coverage))
+
             table.append('| %s |'%' | '.join(line))
         return table
 
