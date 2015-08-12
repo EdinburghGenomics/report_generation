@@ -79,8 +79,7 @@ def main():
     #Setup options
     argparser=_prepare_argparser()
     args = argparser.parse_args()
-    report = Demultiplexing_report(args.xml_file)
-    report.write_report_wiki()
+    print(Demultiplexing_report(args.xml_file))
 
 def _prepare_argparser():
     """Prepare optparser object. New arguments will be added in this
