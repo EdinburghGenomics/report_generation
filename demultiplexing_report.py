@@ -2,6 +2,7 @@
 from argparse import ArgumentParser
 from collections import defaultdict, Counter
 import xml.etree.ElementTree as ET
+from report_generation.formaters import format_percent
 from report_generation.readers.demultiplexing_parsers import parse_demultiplexing_stats, parse_conversion_stats
 
 __author__ = 'tcezard'
@@ -19,27 +20,31 @@ class Demultiplexing_report:
             self.data_per_lane[lane][barcode]=(project, library, clust_count, clust_count_pf, nb_bases, nb_bases_r1q30, nb_bases_r2q30)
             if not 'total' in self.data_per_lane[lane]:
                 self.data_per_lane[lane]['total']=0
+                self.data_per_lane[lane]['total_pf']=0
             self.data_per_lane[lane]['total']+=clust_count
-
+            self.data_per_lane[lane]['total_pf']+=clust_count_pf
 
     def _generate_demultiplexing_table(self):
+        header = ['Lane', '%PF', 'Project', 'Library', 'Barcode', 'Nb of Read', '% of Read', 'Yield (Gb)', '%Q30 R1', '%Q30 R1']
         table=[]
-        table.append('|| %s ||'%' || '.join(['Lane','Project', 'Library', 'Barcode', 'Nb of Read', '% of Read', 'Yield (Gb)', '%Q30 R1', '%Q30 R1']))
+        table.append('|| %s ||'%' || '.join(header))
 
         for lane in sorted(self.data_per_lane.keys()):
             #get the total number of read for that lane
             clust_count_total = self.data_per_lane.get(lane).get('total')
+            clust_count_pass_filter = self.data_per_lane.get(lane).get('total_pf')
             for barcode in self.data_per_lane.get(lane):
-                if barcode=='total':
+                if barcode=='total' or barcode=='total_pf':
                     continue
                 line=[]
                 project, library, clust_count, clust_count_pf, nb_bases, nb_bases_r1q30, nb_bases_r2q30 = self.data_per_lane.get(lane).get(barcode)
                 line.append(lane)
+                line.append(format_percent(float(clust_count_pass_filter)/clust_count_total))
                 line.append(project)
                 line.append(library)
                 line.append(barcode)
                 line.append(str(clust_count_pf))
-                line.append('%.2f%%'%(float(clust_count_pf)/float(clust_count_total)*100))
+                line.append('%.2f%%'%(float(clust_count_pf)/float(clust_count_pass_filter)*100))
                 line.append('%.2f'%(float(nb_bases)/1000000000))
                 line.append('%.2f%%'%(float(nb_bases_r1q30)/float(nb_bases)*100))
                 line.append('%.2f%%'%(float(nb_bases_r2q30)/float(nb_bases)*100))
@@ -50,7 +55,7 @@ class Demultiplexing_report:
         table = []
         table.append('|| %s ||'%' || '.join(['Lane', 'Barcode', 'Nb of Read', '% of Unexpected', '% of Lane']))
         for lane, barcode, clust_count in self.top_unknown_barcodes_per_lanes:
-            clust_count_total = self.data_per_lane.get(lane).get('total')
+            clust_count_total = self.data_per_lane.get(lane).get('total_pf')
             d, d, clust_count_unknown, clust_count_pf_unknown, d,d,d = self.data_per_lane.get(lane).get('unknown')
             if barcode.startswith('NNNNNN'):
                 clust_count = int(clust_count) - (int(clust_count_unknown) - int(clust_count_pf_unknown))
