@@ -1,4 +1,5 @@
 from collections import Counter
+import csv
 import yaml
 
 __author__ = 'tcezard'
@@ -44,5 +45,25 @@ def parse_highdepth_yaml_file(yaml_file):
         content = yaml.load(open_file)
     return content.get('median_cov', 0)
 
-
-
+def parse_validate_csv(csv_file):
+    snp_conc = indel_conc = snp_disc = indel_disc = 0
+    with open(csv_file) as open_file:
+        reader = csv.DictReader(open_file)
+        for row in reader:
+            if row.get('variant.type') == 'snp' and row.get('category') == 'concordant':
+                snp_conc+=int(row.get('value'))
+            elif row.get('variant.type') == 'indel' and row.get('category') == 'concordant':
+                indel_conc+=int(row.get('value'))
+            elif row.get('variant.type') == 'snp' and row.get('category') == 'discordant-extra-total':
+                snp_disc+=int(row.get('value'))
+            elif row.get('variant.type') == 'snp' and row.get('category') == 'discordant-shared-total':
+                snp_disc+=int(row.get('value'))
+            elif row.get('variant.type') == 'snp' and row.get('category') == 'discordant-missing-total':
+                snp_disc+=int(row.get('value'))
+            elif row.get('variant.type') == 'indel' and row.get('category') == 'discordant-extra-total':
+                indel_disc+=int(row.get('value'))
+            elif row.get('variant.type') == 'indel' and row.get('category') == 'discordant-shared-total':
+                indel_disc+=int(row.get('value'))
+            elif row.get('variant.type') == 'indel' and row.get('category') == 'discordant-missing-total':
+                indel_disc+=int(row.get('value'))
+    return snp_conc, indel_conc, snp_disc, indel_disc

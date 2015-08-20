@@ -55,15 +55,3 @@ def parse_conversion_stats(xml_file):
             top_unknown_barcodes_per_lanes.append((lane.get('number'), unknown_barcode.get('sequence'), unknown_barcode.get('count')))
     return all_barcodes_per_lanes, top_unknown_barcodes_per_lanes
 
-
-class Lane_report:
-    pass
-
-
-class Library_report:
-    def __init__(self, project, name):
-        self.project = project
-        self.name = name
-        self.project = project
-        self.project = project
-
