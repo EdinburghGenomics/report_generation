@@ -46,7 +46,7 @@ class Bcbio_report:
         callable_bases = coverage_per_type.get('CALLABLE')
         total = sum(coverage_per_type.values())
         lib_info[LIBRARY_ELEMENT_PC_BASES_CALLABLE]= callable_bases/total
-        validation_files = glob.glob(os.path.join(bcbio_dir,'final', 'project_*', 'grading-summary-%s-join.csv'%lib_name))
+        validation_files = glob.glob(os.path.join(bcbio_dir,'final', 'project_*', 'grading-summary-%s-joint.csv'%lib_name))
         if len(validation_files) == 1:
             snp_conc, indel_conc, snp_disc, indel_disc = parse_validate_csv(validation_files[0])
             lib_info[LIBRARY_ELEMENT_NB_SNP_CONCORDANT]= snp_conc
