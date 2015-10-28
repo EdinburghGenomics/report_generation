@@ -5,9 +5,9 @@ import eve
 settings = {
     'DOMAIN': {
         'things': {
-            'url': 'things',
+            'url': 'analysis_driver_reports',
             'resource_methods': ['GET', 'POST', 'DELETE'],
-            'item_title': 'thing',
+            'item_title': 'report_entry',
 
             'schema': {
 
@@ -64,4 +64,4 @@ app = eve.Eve(settings=settings)
 
 
 if __name__ == '__main__':
-    app.run()
+    app.run(port=5002)
