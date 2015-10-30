@@ -21,5 +21,6 @@ class Test_demultiplexing(TestReport):
 
     def test_demultiplexing_report(self):
         report = Demultiplexing_report(self.xml_file2)
+        print(report)
         self.assertTrue(report)
 
