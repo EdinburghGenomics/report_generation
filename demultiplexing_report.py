@@ -2,7 +2,7 @@
 from argparse import ArgumentParser
 from collections import defaultdict, Counter
 import xml.etree.ElementTree as ET
-from report_generation.formaters import format_percent
+from report_generation.formaters import format_percent, format_info
 from report_generation.model import Info, ELEMENT_PROJECT, ELEMENT_LIBRARY_INTERNAL_ID, ELEMENT_NB_READS_SEQUENCED, \
     ELEMENT_NB_READS_PASS_FILTER, ELEMENT_RUN_NAME, ELEMENT_LANE, ELEMENT_BARCODE, ELEMENT_NB_Q30_R1, ELEMENT_NB_BASE, \
     ELEMENT_NB_Q30_R2, ELEMENT_PC_PASS_FILTER, ELEMENT_PC_Q30_R1, ELEMENT_PC_Q30_R2, ELEMENT_PC_READ_IN_LANE, \
@@ -10,12 +10,6 @@ from report_generation.model import Info, ELEMENT_PROJECT, ELEMENT_LIBRARY_INTER
 from report_generation.readers.demultiplexing_parsers import parse_demultiplexing_stats, parse_conversion_stats
 
 __author__ = 'tcezard'
-
-def generate_table(headers, infos):
-    table=[]
-    table.append('|| %s ||' % (' || '.join([str(h) for h in headers])))
-    table.extend([info.format_line_wiki(headers) for info in infos])
-    return table
 
 class Demultiplexing_report:
 
@@ -71,19 +65,19 @@ class Demultiplexing_report:
     def _generate_lane_summary_table(self):
         headers = [ELEMENT_LANE, ELEMENT_PC_PASS_FILTER, ELEMENT_NB_READS_PASS_FILTER, ELEMENT_YIELD,
                    ELEMENT_PC_Q30_R1, ELEMENT_PC_Q30_R2]
-        return generate_table(headers, [self.lanes_info[lane] for lane in sorted(self.lanes_info)])
+        return format_info([self.lanes_info[lane] for lane in sorted(self.lanes_info)], headers)
 
     def _generate_sample_summary_table(self):
         headers = [ELEMENT_PROJECT, ELEMENT_LIBRARY_INTERNAL_ID, ELEMENT_BARCODE,
                    ELEMENT_NB_READS_PASS_FILTER, ELEMENT_YIELD, ELEMENT_PC_Q30_R1, ELEMENT_PC_Q30_R2]
-        return generate_table(headers, [self.libraries_info[library] for library in sorted(self.libraries_info)])
+        return format_info([self.libraries_info[library] for library in sorted(self.libraries_info)], headers)
 
 
     def _generate_sample_per_lane_table(self, lane):
         headers = [ELEMENT_LANE, ELEMENT_PC_PASS_FILTER, ELEMENT_PROJECT, ELEMENT_LIBRARY_INTERNAL_ID,
                   ELEMENT_BARCODE, ELEMENT_NB_READS_PASS_FILTER, ELEMENT_PC_READ_IN_LANE, ELEMENT_PC_Q30_R1,
                   ELEMENT_PC_Q30_R2]
-        return generate_table(headers, [barcode for barcode in self.barcodes_info if barcode[ELEMENT_LANE] == lane])
+        return format_info([barcode for barcode in self.barcodes_info if barcode[ELEMENT_LANE] == lane], headers)
 
     def _generate_demultiplexing_tab(self):
         tabbed_table=[]
@@ -99,7 +93,7 @@ class Demultiplexing_report:
 
     def _generate_unexpected_per_lane_table(self, lane):
         headers = [ELEMENT_LANE, ELEMENT_BARCODE, ELEMENT_NB_READS_PASS_FILTER, ELEMENT_PC_READ_IN_LANE]
-        return generate_table(headers, [barcode for barcode in self.unexpected_barcode_info if barcode[ELEMENT_LANE] == lane])
+        return format_info([barcode for barcode in self.unexpected_barcode_info if barcode[ELEMENT_LANE] == lane], headers)
 
     def _generate_unexpected_tab(self):
         tabbed_table=[]

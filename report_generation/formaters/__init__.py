@@ -1,4 +1,6 @@
 import humanize
+import json
+
 __author__ = 'tcezard'
 
 
@@ -54,3 +56,15 @@ def link_page(data, style='wiki', **kwargs):
             return ', '.join([link_page(element,style) for element in data])
         else:
             return default_formatter(data)
+
+
+def format_info(list_info, headers, style="wiki"):
+    if style == "wiki":
+        table=[]
+        table.append('|| %s ||' % (' || '.join([str(h) for h in headers])))
+        table.extend([info.format_line_wiki(headers) for info in list_info])
+        return table
+    elif style == "json":
+        return json.dumps([info.format_entry_dict(headers, style) for info in list_info], indent=4)
+
+

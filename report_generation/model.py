@@ -16,14 +16,17 @@ class Piece_of_info():
 
 def divide(info, key1, key2):
     val1=val2=None
-    if isinstance(key1, int) or isinstance(key1, float):
-        val1 = key1
-    elif info[key1]:
+
+    if isinstance(key1, Piece_of_info) and info[key1]:
         val1 = info[key1]
-    if isinstance(key2, int) or isinstance(key2, float):
-        val2 = key2
-    elif info[key2]:
+    else:
+        val1 = key1
+
+    if isinstance(key2, Piece_of_info) and info[key2]:
         val2 = info[key2]
+    else:
+        val2 = key2
+
     if val1 and val2 and val2!=0:
         return float(val1)/float(val2)
     else:
@@ -117,6 +120,9 @@ class Info:
 
     def format_line_wiki(self, keys):
         return '| %s |'%(' | '.join(self.format_line(keys, style="wiki")))
+
+    def format_entry_dict(self, headers, style):
+        return dict(zip(headers, self.format_line(headers, style)))
 
     def __add__(self, other):
         new_info = Info()
