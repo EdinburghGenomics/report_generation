@@ -35,7 +35,7 @@ class Bcbio_report:
         lib_info[ELEMENT_NB_DUPLICATE_READS]= int(duplicate_reads)
         lib_info[ELEMENT_NB_PROPERLY_MAPPED]= int(proper_pairs)
 
-        yaml_metric_paths = glob.glob(os.path.join(sample_dir, '%s-sort-highdepth-stats.yaml'%sample_name))
+        yaml_metric_paths = glob.glob(os.path.join(sample_dir, '*%s-sort-highdepth-stats.yaml'%external_sample_name))
         if yaml_metric_paths:
             yaml_metric_path = yaml_metric_paths[0]
             median_coverage  = parse_highdepth_yaml_file(yaml_metric_path)
@@ -43,7 +43,7 @@ class Bcbio_report:
         else:
             logging.critical('Missing %s-sort-highdepth-stats.yaml'%sample_name)
 
-        bed_file_paths = glob.glob(os.path.join(sample_dir,'*%s-sort-callable.bed'%sample_name))
+        bed_file_paths = glob.glob(os.path.join(sample_dir,'*%s-sort-callable.bed'%external_sample_name))
         if bed_file_paths:
             bed_file_path = bed_file_paths[0]
             coverage_per_type = parse_callable_bed_file(bed_file_path)
