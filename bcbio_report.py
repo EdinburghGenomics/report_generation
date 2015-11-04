@@ -3,15 +3,13 @@ from argparse import ArgumentParser
 import glob
 import logging
 import os
-from report_generation.formaters import format_longint, format_percent, format_float
-from report_generation.model import Info, ELEMENT_LIBRARY_EXTERNAL_ID, ELEMENT_NB_READS_SEQUENCED, \
+from report_generation.model import Info, ELEMENT_NB_READS_SEQUENCED, \
     ELEMENT_NB_MAPPED_READS, ELEMENT_NB_DUPLICATE_READS, ELEMENT_NB_PROPERLY_MAPPED, \
-    ELEMENT_MEDIAN_COVERAGE, ELEMENT_NB_SNP_CONCORDANT, ELEMENT_PC_SNP_CONCORDANT, \
-    ELEMENT_NB_INDEL_CONCORDANT, ELEMENT_PC_INDEL_CONCORDANT, ELEMENT_PC_MAPPED_READS, \
-    ELEMENT_PC_DUPLICATE_READS, ELEMENT_PC_PROPERLY_MAPPED, ELEMENT_PC_BASES_CALLABLE, ELEMENT_SAMPLE_INTERNAL_ID, \
-    ELEMENT_SAMPLE_EXTERNAL_ID
+    ELEMENT_MEDIAN_COVERAGE, ELEMENT_PC_DUPLICATE_READS, ELEMENT_PC_PROPERLY_MAPPED, \
+    ELEMENT_PC_BASES_CALLABLE, ELEMENT_SAMPLE_INTERNAL_ID, ELEMENT_SAMPLE_EXTERNAL_ID, ELEMENT_NB_READS_PASS_FILTER, \
+    ELEMENT_NB_READS_ADAPTER_TRIMMED
 from report_generation.readers.mapping_stats_parsers import parse_bamtools_stats, parse_callable_bed_file, \
-    parse_highdepth_yaml_file, parse_validate_csv
+    parse_highdepth_yaml_file
 
 __author__ = 'tcezard'
 
@@ -24,7 +22,7 @@ class Bcbio_report:
     def _populate_lib_info(self, sample_dir):
         lib_info = Info()
 
-        sample_name = os.path.basename(sample_dir)
+        sample_name = os.path.basename(os.path.dirname(sample_dir))
         lib_info[ELEMENT_SAMPLE_INTERNAL_ID]= sample_name
         fastq_file = glob.glob(os.path.join(sample_dir,"*_R1.fastq.gz"))[0]
         external_sample_name = os.path.basename(fastq_file)[:-len("_R1.fastq.gz")]
@@ -32,16 +30,18 @@ class Bcbio_report:
 
         bamtools_path = os.path.join(sample_dir, 'bamtools_stats.txt')
         total_reads, mapped_reads, duplicate_reads, proper_pairs = parse_bamtools_stats(bamtools_path)
-        lib_info[ELEMENT_NB_READS_SEQUENCED]= total_reads
-        lib_info[ELEMENT_NB_MAPPED_READS]= mapped_reads
-        lib_info[ELEMENT_NB_DUPLICATE_READS]= duplicate_reads
-        lib_info[ELEMENT_NB_PROPERLY_MAPPED]= proper_pairs
+        lib_info[ELEMENT_NB_READS_ADAPTER_TRIMMED]= int(total_reads)
+        lib_info[ELEMENT_NB_MAPPED_READS]= int(mapped_reads)
+        lib_info[ELEMENT_NB_DUPLICATE_READS]= int(duplicate_reads)
+        lib_info[ELEMENT_NB_PROPERLY_MAPPED]= int(proper_pairs)
 
         yaml_metric_paths = glob.glob(os.path.join(sample_dir, '%s-sort-highdepth-stats.yaml'%sample_name))
         if yaml_metric_paths:
             yaml_metric_path = yaml_metric_paths[0]
             median_coverage  = parse_highdepth_yaml_file(yaml_metric_path)
             lib_info[ELEMENT_MEDIAN_COVERAGE]= median_coverage
+        else:
+            logging.critical('Missing %s-sort-highdepth-stats.yaml'%sample_name)
 
         bed_file_paths = glob.glob(os.path.join(sample_dir,'*%s-sort-callable.bed'%sample_name))
         if bed_file_paths:
@@ -50,13 +50,14 @@ class Bcbio_report:
             callable_bases = coverage_per_type.get('CALLABLE')
             total = sum(coverage_per_type.values())
             lib_info[ELEMENT_PC_BASES_CALLABLE]= callable_bases/total
-
+        else:
+            logging.critical('Missing *%s-sort-callable.bed'%sample_name)
         return lib_info
 
     def _write_mapping_stats_report(self):
-        headers = [ELEMENT_LIBRARY_EXTERNAL_ID, ELEMENT_NB_READS_SEQUENCED,ELEMENT_NB_MAPPED_READS,
-                     ELEMENT_NB_DUPLICATE_READS, ELEMENT_PC_DUPLICATE_READS, ELEMENT_NB_PROPERLY_MAPPED,
-                     ELEMENT_PC_PROPERLY_MAPPED, ELEMENT_MEDIAN_COVERAGE, ELEMENT_PC_BASES_CALLABLE]
+        headers = [ELEMENT_SAMPLE_INTERNAL_ID, ELEMENT_SAMPLE_EXTERNAL_ID, ELEMENT_NB_READS_ADAPTER_TRIMMED,
+                   ELEMENT_NB_MAPPED_READS, ELEMENT_NB_DUPLICATE_READS, ELEMENT_PC_DUPLICATE_READS,
+                   ELEMENT_NB_PROPERLY_MAPPED, ELEMENT_PC_PROPERLY_MAPPED, ELEMENT_MEDIAN_COVERAGE, ELEMENT_PC_BASES_CALLABLE]
         table = []
         table.append('|| %s ||' % (' || '.join([str(h) for h in headers])))
         for bcbio_dir in self.bcbio_dirs:
@@ -97,11 +98,11 @@ def _prepare_argparser():
     """Prepare optparser object. New arguments will be added in this
     function first.
     """
-    description = """Simple script that parse bcbio outputs and generate a wiki table"""
+    description = """Simple script that parse 10015TA0004 outputs and generate a wiki table"""
 
     argparser = ArgumentParser(description=description)
 
-    argparser.add_argument("-d", "--bcbio_dir", dest="bcbio_dirs", type=str, nargs='+', help="The directories containing the bcbio data.")
+    argparser.add_argument("-d", "--bcbio_dir", dest="bcbio_dirs", type=str, nargs='+', help="The directories containing the 10015TA0004 data.")
     return argparser
 
 

@@ -16,17 +16,14 @@ class Piece_of_info():
 
 def divide(info, key1, key2):
     val1=val2=None
-
-    if isinstance(key1, Piece_of_info) and info[key1]:
-        val1 = info[key1]
+    if isinstance(key1, Piece_of_info):
+        val1 = info.get(key1, None)
     else:
         val1 = key1
-
-    if isinstance(key2, Piece_of_info) and info[key2]:
-        val2 = info[key2]
+    if isinstance(key2, Piece_of_info):
+        val2 = info.get(key2, None)
     else:
         val2 = key2
-
     if val1 and val2 and val2!=0:
         return float(val1)/float(val2)
     else:
@@ -38,20 +35,21 @@ ELEMENT_SAMPLE_INTERNAL_ID = Piece_of_info(key='Sample LIMS id', formatter=defau
 ELEMENT_SAMPLE_EXTERNAL_ID = Piece_of_info(key='User id', formatter=default_formatter)
 ELEMENT_NB_READS_SEQUENCED = Piece_of_info(key='Nb of reads', formatter=format_longint)
 ELEMENT_NB_READS_PASS_FILTER = Piece_of_info(key='Passing filter reads', formatter=format_longint)
+ELEMENT_NB_READS_ADAPTER_TRIMMED = Piece_of_info(key='No adapter reads', formatter=format_longint)
 ELEMENT_PC_PASS_FILTER = Piece_of_info(key='%PF', formatter=format_percent,
-                                       formula=[divide, ELEMENT_NB_READS_PASS_FILTER,ELEMENT_NB_READS_SEQUENCED])
+                                       formula=[divide, ELEMENT_NB_READS_PASS_FILTER, ELEMENT_NB_READS_SEQUENCED])
 ELEMENT_NB_MAPPED_READS = Piece_of_info(key='Nb mapped reads', formatter=format_longint)
 ELEMENT_PC_MAPPED_READS = Piece_of_info(key='% mapped reads', formatter=format_percent,
-                                        formula=[divide, ELEMENT_NB_MAPPED_READS, ELEMENT_NB_READS_PASS_FILTER])
+                                        formula=[divide, ELEMENT_NB_MAPPED_READS, ELEMENT_NB_READS_ADAPTER_TRIMMED])
 ELEMENT_NB_SEC_MAPPED_READS = Piece_of_info(key='Nb secondary alignments', formatter=format_longint)
 ELEMENT_PC_SEC_MAPPED_READS = Piece_of_info(key='% secondary alignments', formatter=format_percent,
-                                            formula=[divide, ELEMENT_NB_SEC_MAPPED_READS, ELEMENT_NB_READS_PASS_FILTER])
+                                            formula=[divide, ELEMENT_NB_SEC_MAPPED_READS, ELEMENT_NB_READS_ADAPTER_TRIMMED])
 ELEMENT_NB_DUPLICATE_READS = Piece_of_info(key='Nb duplicate reads', formatter=format_longint)
 ELEMENT_PC_DUPLICATE_READS = Piece_of_info(key='% duplicate reads', formatter=format_percent,
-                                           formula=[divide, ELEMENT_NB_DUPLICATE_READS, ELEMENT_NB_READS_PASS_FILTER])
+                                           formula=[divide, ELEMENT_NB_DUPLICATE_READS, ELEMENT_NB_MAPPED_READS])
 ELEMENT_NB_PROPERLY_MAPPED = Piece_of_info(key='Nb properly mapped reads', formatter=format_longint)
 ELEMENT_PC_PROPERLY_MAPPED = Piece_of_info(key='% properly mapped reads', formatter=format_percent,
-                                           formula=[divide, ELEMENT_NB_PROPERLY_MAPPED, ELEMENT_NB_READS_PASS_FILTER])
+                                           formula=[divide, ELEMENT_NB_PROPERLY_MAPPED, ELEMENT_NB_MAPPED_READS])
 ELEMENT_MEDIAN_INSERT_SIZE = Piece_of_info(key='Median Insert Size', formatter=format_float)
 ELEMENT_LIBRARY_MEAN_INSERT_SIZE = Piece_of_info(key='Mean Insert Size', formatter=format_longint)
 ELEMENT_LIBRARY_STDDEV_INSERT_SIZE = Piece_of_info(key='Std dev Insert Size', formatter=format_longint)
@@ -101,6 +99,9 @@ class Info:
             return self._info.get(key)
         else:
             raise ValueError("Only instances of Piece_of_info can be used as Key")
+
+    def get(self, *args, **kwargs):
+        return self._info.get(*args, **kwargs)
 
     def __contains__(self, item):
         return item in self._info

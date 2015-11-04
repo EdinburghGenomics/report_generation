@@ -13,7 +13,7 @@ class Test_mapping_stats(TestReport):
         self.highdepth_yaml_file = os.path.join(self.test_data_path,'10015TA0004-sort-highdepth-stats.yaml')
         self.callable_bed_file = os.path.join(self.test_data_path,'10015TA0004-sort-callable.bed')
         self.grading_csv_file = os.path.join(self.test_data_path,'grading-summary-10015TA0004-join.csv')
-        self.bcbio_dir = os.path.join(self.test_data_path,'bcbio')
+        self.bcbio_dir = os.path.join(self.test_data_path,'10015TA0004')
 
     def test_parse_bamtools_stats(self):
         self.assertEqual(parse_bamtools_stats(self.bamtools_stat_file), (988805087, 975587288, 171911966, 949154225))
