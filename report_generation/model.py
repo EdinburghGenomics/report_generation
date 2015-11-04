@@ -33,8 +33,9 @@ def divide(info, key1, key2):
         return 'nan'
 
 ELEMENT_PROJECT = Piece_of_info(key='Project', formatter=default_formatter)
-ELEMENT_LIBRARY_INTERNAL_ID = Piece_of_info(key='LIMS Id', formatter=default_formatter)
-ELEMENT_LIBRARY_EXTERNAL_ID = Piece_of_info(key='External Id', formatter=default_formatter)
+ELEMENT_LIBRARY_INTERNAL_ID = Piece_of_info(key='Library LIMS id', formatter=default_formatter)
+ELEMENT_SAMPLE_INTERNAL_ID = Piece_of_info(key='Sample LIMS id', formatter=default_formatter)
+ELEMENT_SAMPLE_EXTERNAL_ID = Piece_of_info(key='User id', formatter=default_formatter)
 ELEMENT_NB_READS_SEQUENCED = Piece_of_info(key='Nb of reads', formatter=format_longint)
 ELEMENT_NB_READS_PASS_FILTER = Piece_of_info(key='Passing filter reads', formatter=format_longint)
 ELEMENT_PC_PASS_FILTER = Piece_of_info(key='%PF', formatter=format_percent,
