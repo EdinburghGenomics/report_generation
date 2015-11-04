@@ -50,7 +50,8 @@ class Demultiplexing_report:
             barcode_info[ELEMENT_BARCODE]=barcode
             barcode_info[ELEMENT_NB_READS_SEQUENCED]=int(clust_count)
             barcode_info[ELEMENT_NB_READS_PASS_FILTER]=int(clust_count_pf)
-            barcode_info[ELEMENT_NB_BASE]=int(nb_bases)
+            #For the paired end reads
+            barcode_info[ELEMENT_NB_BASE]=int(nb_bases)*2
             barcode_info[ELEMENT_NB_Q30_R1]=int(nb_bases_r1q30)
             barcode_info[ELEMENT_NB_Q30_R2]=int(nb_bases_r2q30)
             self.barcodes_info.append(barcode_info)
