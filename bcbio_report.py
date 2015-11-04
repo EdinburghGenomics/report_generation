@@ -8,7 +8,8 @@ from report_generation.model import Info, ELEMENT_LIBRARY_EXTERNAL_ID, ELEMENT_N
     ELEMENT_NB_MAPPED_READS, ELEMENT_NB_DUPLICATE_READS, ELEMENT_NB_PROPERLY_MAPPED, \
     ELEMENT_MEDIAN_COVERAGE, ELEMENT_NB_SNP_CONCORDANT, ELEMENT_PC_SNP_CONCORDANT, \
     ELEMENT_NB_INDEL_CONCORDANT, ELEMENT_PC_INDEL_CONCORDANT, ELEMENT_PC_MAPPED_READS, \
-    ELEMENT_PC_DUPLICATE_READS, ELEMENT_PC_PROPERLY_MAPPED, ELEMENT_PC_BASES_CALLABLE
+    ELEMENT_PC_DUPLICATE_READS, ELEMENT_PC_PROPERLY_MAPPED, ELEMENT_PC_BASES_CALLABLE, ELEMENT_SAMPLE_INTERNAL_ID, \
+    ELEMENT_SAMPLE_EXTERNAL_ID
 from report_generation.readers.mapping_stats_parsers import parse_bamtools_stats, parse_callable_bed_file, \
     parse_highdepth_yaml_file, parse_validate_csv
 
@@ -20,27 +21,29 @@ class Bcbio_report:
     def __init__(self, bcbio_dirs):
         self.bcbio_dirs=bcbio_dirs
 
-    def _populate_lib_info(self, bcbio_dir):
+    def _populate_lib_info(self, sample_dir):
         lib_info = Info()
-        lib_name = get_library_name_from_dir(bcbio_dir)
-        if lib_name is None:
-            return None
 
-        bamtools_path = os.path.join(bcbio_dir,'final', lib_name, 'qc','bamtools', 'bamtools_stats.txt')
+        sample_name = os.path.basename(sample_dir)
+        lib_info[ELEMENT_SAMPLE_INTERNAL_ID]= sample_name
+        fastq_file = glob.glob(os.path.join(sample_dir,"*_R1.fastq.gz"))[0]
+        external_sample_name = os.path.basename(fastq_file)[:-len("_R1.fastq.gz")]
+        lib_info[ELEMENT_SAMPLE_EXTERNAL_ID]= external_sample_name
+
+        bamtools_path = os.path.join(sample_dir, 'bamtools_stats.txt')
         total_reads, mapped_reads, duplicate_reads, proper_pairs = parse_bamtools_stats(bamtools_path)
-        lib_info[ELEMENT_LIBRARY_EXTERNAL_ID]= lib_name
         lib_info[ELEMENT_NB_READS_SEQUENCED]= total_reads
         lib_info[ELEMENT_NB_MAPPED_READS]= mapped_reads
         lib_info[ELEMENT_NB_DUPLICATE_READS]= duplicate_reads
         lib_info[ELEMENT_NB_PROPERLY_MAPPED]= proper_pairs
 
-        yaml_metric_paths = glob.glob(os.path.join(bcbio_dir,'work', 'align', lib_name,'*%s-sort-highdepth-stats.yaml'%lib_name))
+        yaml_metric_paths = glob.glob(os.path.join(sample_dir, '%s-sort-highdepth-stats.yaml'%sample_name))
         if yaml_metric_paths:
             yaml_metric_path = yaml_metric_paths[0]
             median_coverage  = parse_highdepth_yaml_file(yaml_metric_path)
             lib_info[ELEMENT_MEDIAN_COVERAGE]= median_coverage
 
-        bed_file_paths = glob.glob(os.path.join(bcbio_dir,'work', 'align', lib_name,'*%s-sort-callable.bed'%lib_name))
+        bed_file_paths = glob.glob(os.path.join(sample_dir,'*%s-sort-callable.bed'%sample_name))
         if bed_file_paths:
             bed_file_path = bed_file_paths[0]
             coverage_per_type = parse_callable_bed_file(bed_file_path)
@@ -48,21 +51,12 @@ class Bcbio_report:
             total = sum(coverage_per_type.values())
             lib_info[ELEMENT_PC_BASES_CALLABLE]= callable_bases/total
 
-        validation_files = glob.glob(os.path.join(bcbio_dir,'final', '*-merged', 'grading-summary-%s-joint.csv'%lib_name))
-        if len(validation_files) == 1:
-            snp_conc, indel_conc, snp_disc, indel_disc = parse_validate_csv(validation_files[0])
-            lib_info[ELEMENT_NB_SNP_CONCORDANT]= snp_conc
-            lib_info[ELEMENT_PC_SNP_CONCORDANT]= snp_conc/float(snp_conc+snp_disc)
-            lib_info[ELEMENT_NB_INDEL_CONCORDANT]= indel_conc
-            lib_info[ELEMENT_PC_INDEL_CONCORDANT]= indel_conc/float(indel_conc+indel_disc)
         return lib_info
 
     def _write_mapping_stats_report(self):
         headers = [ELEMENT_LIBRARY_EXTERNAL_ID, ELEMENT_NB_READS_SEQUENCED,ELEMENT_NB_MAPPED_READS,
                      ELEMENT_NB_DUPLICATE_READS, ELEMENT_PC_DUPLICATE_READS, ELEMENT_NB_PROPERLY_MAPPED,
-                     ELEMENT_PC_PROPERLY_MAPPED, ELEMENT_MEDIAN_COVERAGE, ELEMENT_PC_BASES_CALLABLE,
-                     ELEMENT_NB_SNP_CONCORDANT, ELEMENT_PC_SNP_CONCORDANT, ELEMENT_NB_INDEL_CONCORDANT,
-                     ELEMENT_PC_INDEL_CONCORDANT]
+                     ELEMENT_PC_PROPERLY_MAPPED, ELEMENT_MEDIAN_COVERAGE, ELEMENT_PC_BASES_CALLABLE]
         table = []
         table.append('|| %s ||' % (' || '.join([str(h) for h in headers])))
         for bcbio_dir in self.bcbio_dirs:
