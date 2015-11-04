@@ -34,7 +34,7 @@ class Demultiplexing_report:
             clust_count_total = self.data_per_lane.get(lane).get('total')
             clust_count_pass_filter = self.data_per_lane.get(lane).get('total_pf')
             for barcode in self.data_per_lane.get(lane):
-                if barcode=='total' or barcode=='total_pf':
+                if barcode=='total' or barcode=='total_pf' or clust_count_pass_filter == 0:
                     continue
                 line=[]
                 project, library, clust_count, clust_count_pf, nb_bases, nb_bases_r1q30, nb_bases_r2q30 = self.data_per_lane.get(lane).get(barcode)
@@ -74,15 +74,27 @@ class Demultiplexing_report:
         page_lines.extend(self._generate_unexpected_barcodes_table())
         return '\n'.join(page_lines)
 
+    def write_report_csv(self):
+        return {
+            'Demultiplexing results': [x.replace('||', '|').lstrip('| ').rstrip(' |').split(' | ') for x in self._generate_demultiplexing_table()],
+            'Unexpected barcodes results': [x.replace('||', '|').lstrip('| ').rstrip(' |').split(' | ') for x in self._generate_unexpected_barcodes_table()]
+        }
+
 
     def __str__(self):
-        return self.write_report_wiki()
+        # return self.write_report_wiki()
+        return self.write_report_csv()
 
-def main():
-    #Setup options
+def main(xml_file=None):
+
     argparser=_prepare_argparser()
     args = argparser.parse_args()
-    print(Demultiplexing_report(args.xml_file))
+    if xml_file is None:
+        xml_file = args.xml_file
+    report = Demultiplexing_report(xml_file).write_report_wiki()
+    print(report)
+    return report
+
 
 def _prepare_argparser():
     """Prepare optparser object. New arguments will be added in this

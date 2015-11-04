@@ -1,9 +1,10 @@
 __author__ = 'mwham'
 import flask as fl
-from collections import defaultdict
 import requests
 
 DEBUG = False
+base_url = 'http://127.0.0.1:5002/'
+eve_url = 'http://127.0.0.1:5002/'
 
 app = fl.Flask(__name__)
 app.config.from_object(__name__)
@@ -13,131 +14,77 @@ app.config.from_object(__name__)
 def main_page():
     return fl.render_template('main.html')
 
-@app.route('/report/<run_id>')
-def report(run_id):
-    data = _get_reports(run_id)
-    print(data)
-    tables = defaultdict(list)
-    for entry in data['_items']:
-        report_type = entry['report_type']
-        tables[report_type].append(entry['payload'])
-    print(tables)
-    return fl.render_template('report.html', run_id=run_id, tables=tables)
+
+@app.route('/project/<project>/')
+def report_project(project):
+    data = _fetch_data_points(sample_project=project)
+    return fl.render_template('project_overview.html', project=project, num_points=data['_meta']['total'])
 
 
-def _get_reports(run_id):
-    query = requests.get('http://127.0.0.1:5002/analysis_driver_reports?where=run_id=="{run_id}"'.format(run_id=run_id))
-    return query.json()
+@app.route('/run_id/<run_id>/')
+def report_run(run_id):
+    # data = _fetch_data_points(run_id=run_id)
+    return fl.render_template('run_overview.html', run_id=run_id, num_points=2)# data['_meta']['total'])
+
+
+@app.route('/<dataset_type>/<dataset>/demultiplexing')
+def project_demultiplexing(dataset_type, dataset):
+    return fl.render_template('demultiplexing_report.html', dataset_type=dataset_type, dataset=dataset)
+
+
+def _fetch_data_points(**queries):
+    query = _join(
+        eve_url,
+        'api/0.1/',
+        'data_points?where=',
+        '&'.join(('{type}=="{value}"'.format(type=k, value=v) for k, v in queries.items()))
+    )
+    print(query)
+    return requests.get(query).json()
+
+
+def _join(*parts):
+    return ''.join(parts)
 
 
 if __name__ == '__main__':
     app.run('localhost', 5000)
 
+
 x = {
-    'demultiplexing_results': [
+    '_meta': {
+        'max_results': 25,
+        'total': 133,
+        'page': 1
+    },
+    '_items': [
         {
-            'Reads': '50%',
-            'Library': 'LP600-35523',
-            'Q30_R1': '15',
-            'Yield_in_Gb': '4',
-            'Barcode': 'ATGCGCGT',
-            'PF': '13.2%',
-            'Nb_of_Reads': '1337',
-            'Lane': '2'
-        },
-        {
-            'Reads': '50%',
-            'Library': 'LP600-35523',
-            'Q30_R1': '15',
-            'Yield_in_Gb': '4',
-            'Barcode': 'ATGCGCGT',
-            'PF': '13.2%',
-            'Nb_of_Reads': '1337',
-            'Lane': '2'
-        },
-        {
-            'Reads': '50%',
-            'Library': 'LP600-35523',
-            'Q30_R1': '15',
-            'Yield_in_Gb': '4',
-            'Barcode': 'ATGCGCGT',
-            'PF': '13.2%',
-            'Nb_of_Reads': '1337',
-            'Lane': '2'
-        },
-        {
-            'Reads': '50%',
-            'Library': 'LP600-35523',
-            'Q30_R1': '15',
-            'Yield_in_Gb': '4',
-            'Barcode': 'ATGCGCGT',
-            'PF': '13.2%',
-            'Nb_of_Reads': '1337',
-            'Lane': '2'
-        },
-        {
-            'Unexpected': '10%',
-            'Barcode': 'ATGCGCGT',
-            'of_Lane': '5%',
-            'Nb_of_Reads': '13',
-            'Lane': '2'
-        },
-        {
-            'Reads': '50%',
-            'Library': 'LP600-35523',
-            'Q30_R1': '15',
-            'Yield_in_Gb': '4',
-            'Barcode': 'ATGCGCGT',
-            'PF': '13.2%',
-            'Nb_of_Reads': '1337',
-            'Lane': '2'
-        }
-    ],
-    'bcbio_report': [
-        {
-            'properly_mapped_reads': '97.12%',
-            'Nb_SNPs_concordant': 'NA',
-            'duplicate_reads': '7.74%',
-            'Nb_of_reads': '8,241,917',
-            'Median_coverage': '20.312',
-            'Nb_mapped_reads': '8,123,798',
-            'SNPs_concordant': 'NA',
-            'Internal_ID': 'MD13046',
-            'Indels_concordant': 'NA',
-            'Nb_properly_mapped_reads': '7,889,705',
-            'Nb_duplicate_reads': '628,559',
-            'Nb_Indels_concordant': 'NA',
-            'Callable': '0.31%'
-        },
-        {
-            'properly_mapped_reads': '97.12%',
-            'Nb_SNPs_concordant': 'NA',
-            'duplicate_reads': '7.74%',
-            'Nb_of_reads': '8,241,917',
-            'Median_coverage': '20.312',
-            'Nb_mapped_reads': '8,123,798',
-            'SNPs_concordant': 'NA',
-            'Internal_ID': 'MD13046',
-            'Indels_concordant': 'NA',
-            'Nb_properly_mapped_reads': '7,889,705',
-            'Nb_duplicate_reads': '628,559',
-            'Nb_Indels_concordant': 'NA',
-            'Callable': '0.31%'
-        },
-        {
-            'properly_mapped_reads': '97.12%',
-            'Nb_SNPs_concordant': 'NA',
-            'duplicate_reads': '7.74%',
-            'Nb_of_reads': '8,241,917',
-            'Median_coverage': '20.312',
-            'Nb_mapped_reads': '8,123,798',
-            'SNPs_concordant': 'NA',
-            'Internal_ID': 'MD13046',
-            'Indels_concordant': 'NA',
-            'Nb_properly_mapped_reads': '7,889,705',
-            'Nb_duplicate_reads': '628,559',
-            'Nb_Indels_concordant': 'NA',
-            'Callable': '0.31%'
+            'run_id': '150723_test',
+            '_links': {
+                'self': {
+                    'title': 'run_element',
+                    'href': 'data_points/563383a8f4b2c64566ae3289'
+                }
+            },
+            'lane': 1,
+            '_updated': 'Fri, 30 Oct 2015 14:50:16 GMT',
+            'sample_id': '10015AT0002_test',
+            'library_id': 'LP600_test',
+            'sample_project': '10015AT_test',
+            '_id': '563383a8f4b2c64566ae3289',
+            '_created': 'Fri, 30 Oct 2015 14:50:16 GMT',
+            'payload': {
+                'pc_of_Unexpected': '0.62%',
+                'Barcode': 'CGCGCAGT',
+                'pc_of_Lane': '0.01%',
+                'Nb_of_Read': '664',
+                'Lane': '6'
+            },
+            'barcode': 'TESTTEST',
+            '_etag': '064dd42c751b9aa862c46907909360bfc2f08eb7',
+            'report_type': 'demultiplexing'
+
+
         }
     ]
 }
