@@ -124,7 +124,7 @@ class Info:
         return '| %s |'%(' | '.join(self.format_line(keys, style="wiki")))
 
     def format_entry_dict(self, headers, style):
-        return dict(zip(headers, self.format_line(headers, style)))
+        return dict(zip([str(h) for h in headers], self.format_line(headers, style)))
 
     def __add__(self, other):
         new_info = Info()

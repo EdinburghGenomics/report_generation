@@ -3,11 +3,12 @@ from argparse import ArgumentParser
 import glob
 import logging
 import os
+from report_generation.formaters import format_info
 from report_generation.model import Info, ELEMENT_NB_READS_SEQUENCED, \
     ELEMENT_NB_MAPPED_READS, ELEMENT_NB_DUPLICATE_READS, ELEMENT_NB_PROPERLY_MAPPED, \
     ELEMENT_MEDIAN_COVERAGE, ELEMENT_PC_DUPLICATE_READS, ELEMENT_PC_PROPERLY_MAPPED, \
     ELEMENT_PC_BASES_CALLABLE, ELEMENT_SAMPLE_INTERNAL_ID, ELEMENT_SAMPLE_EXTERNAL_ID, ELEMENT_NB_READS_PASS_FILTER, \
-    ELEMENT_NB_READS_ADAPTER_TRIMMED
+    ELEMENT_NB_READS_ADAPTER_TRIMMED, ELEMENT_PC_MAPPED_READS
 from report_generation.readers.mapping_stats_parsers import parse_bamtools_stats, parse_callable_bed_file, \
     parse_highdepth_yaml_file
 
@@ -15,9 +16,17 @@ __author__ = 'tcezard'
 
 
 class Bcbio_report:
+    headers = [ELEMENT_SAMPLE_INTERNAL_ID, ELEMENT_SAMPLE_EXTERNAL_ID, ELEMENT_NB_READS_ADAPTER_TRIMMED,
+               ELEMENT_NB_MAPPED_READS, ELEMENT_PC_MAPPED_READS, ELEMENT_NB_DUPLICATE_READS, ELEMENT_PC_DUPLICATE_READS,
+               ELEMENT_NB_PROPERLY_MAPPED, ELEMENT_PC_PROPERLY_MAPPED, ELEMENT_MEDIAN_COVERAGE,
+               ELEMENT_PC_BASES_CALLABLE]
 
     def __init__(self, bcbio_dirs):
         self.bcbio_dirs=bcbio_dirs
+        self.all_info = []
+        for bcbio_dir in self.bcbio_dirs:
+            self.all_info.append(self._populate_lib_info(bcbio_dir))
+
 
     def _populate_lib_info(self, sample_dir):
         lib_info = Info()
@@ -54,45 +63,29 @@ class Bcbio_report:
             logging.critical('Missing *%s-sort-callable.bed'%sample_name)
         return lib_info
 
-    def _write_mapping_stats_report(self):
-        headers = [ELEMENT_SAMPLE_INTERNAL_ID, ELEMENT_SAMPLE_EXTERNAL_ID, ELEMENT_NB_READS_ADAPTER_TRIMMED,
-                   ELEMENT_NB_MAPPED_READS, ELEMENT_NB_DUPLICATE_READS, ELEMENT_PC_DUPLICATE_READS,
-                   ELEMENT_NB_PROPERLY_MAPPED, ELEMENT_PC_PROPERLY_MAPPED, ELEMENT_MEDIAN_COVERAGE, ELEMENT_PC_BASES_CALLABLE]
-        table = []
-        table.append('|| %s ||' % (' || '.join([str(h) for h in headers])))
-        for bcbio_dir in self.bcbio_dirs:
-            lib_info = self._populate_lib_info(bcbio_dir)
-            if lib_info:
-                lib_info.format_line(headers)
-                table.append(lib_info.format_line_wiki(headers))
-        return table
-
     def write_report_wiki(self):
         page_lines=[]
         page_lines.append('h1. Mapping Statistics')
-        page_lines.extend(self._write_mapping_stats_report())
+        page_lines.extend(format_info(self.all_info, self.headers, style='wiki'))
         return '\n'.join(page_lines)
+
+    def write_report_json(self):
+        return format_info(self.all_info, self.headers, style='json')
+
 
 
     def __str__(self):
         return self.write_report_wiki()
 
-def get_library_name_from_dir(bcbio_dir):
-    paths = glob.glob(os.path.join(bcbio_dir,'final','*','qc'))
-    if paths and len(paths)==1:
-        return os.path.basename(os.path.dirname(paths[0]))
-    elif len(paths)>1:
-        logging.error('More than one library found in {}'.format(bcbio_dir))
-        return None
-    else:
-        logging.error('No library found in {}'.format(bcbio_dir))
-        return None
 
 def main():
     #Setup options
     argparser=_prepare_argparser()
     args = argparser.parse_args()
-    print(Bcbio_report(args.bcbio_dirs))
+    if args.style == 'wiki':
+        print(Bcbio_report(args.bcbio_dirs).write_report_wiki())
+    elif args.style == 'json':
+        print(Bcbio_report(args.bcbio_dirs).write_report_json())
 
 def _prepare_argparser():
     """Prepare optparser object. New arguments will be added in this
@@ -102,7 +95,8 @@ def _prepare_argparser():
 
     argparser = ArgumentParser(description=description)
 
-    argparser.add_argument("-d", "--bcbio_dir", dest="bcbio_dirs", type=str, nargs='+', help="The directories containing the 10015TA0004 data.")
+    argparser.add_argument("-d", "--bcbio_dir", dest="bcbio_dirs", type=str, nargs='+', help="The directories containing the bcbio data.")
+    argparser.add_argument("--style", dest="style", type=str, help="The style of the report.", default='wiki')
     return argparser
 
 
