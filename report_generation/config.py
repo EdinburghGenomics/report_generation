@@ -1,0 +1,99 @@
+import os
+import yaml
+
+
+class Configuration:
+    def __init__(self, config_file=None):
+        self.environment = os.getenv('REPORTGENERATIONENV', 'development')
+        if not config_file:
+            config_file = self._find_config_file()
+        self.config_file = config_file
+
+        full_config = yaml.safe_load(open(self.config_file, 'r'))
+        if not full_config.get(self.environment):
+            raise Exception('Could not find \'%s\' environment in %s'%(self.environment, self.config_file))
+
+        self.content = full_config[self.environment]
+
+    def get(self, item, return_default=None):
+        """
+        Dict-style item retrieval with default
+        :param item: The key to search for
+        :param return_default: What to return if the key is not present
+        """
+        try:
+            return self[item]
+        except KeyError:
+            return return_default
+
+    def query(self, *parts, top_level=None):
+        """
+        Drill down into a config, e.g. cfg.query('logging', 'handlers', 'a_handler', 'level')
+        :return: The relevant item if it exists in the config, else None.
+        """
+        if top_level is None:
+            top_level = self.content
+        item = None
+
+        for p in parts:
+            item = top_level.get(p)
+            if item:
+                top_level = item
+            else:
+                return None
+        return item
+
+    def report(self):
+        return yaml.safe_dump(self.content, default_flow_style=False)
+
+    @classmethod
+    def validate_file_paths(cls, content=None):
+        """
+        Recursively search through the values of self.content and if the value is an absolute file path,
+        assert that it exists.
+        :param content: a dict, list or str (i.e. potential file path) to validate
+        """
+        invalid_file_paths = []
+        if type(content) is dict:
+            for v in content.values():
+                invalid_file_paths.extend(cls.validate_file_paths(v))
+        elif type(content) is list:
+            for v in content:
+                invalid_file_paths.extend(cls.validate_file_paths(v))
+        elif type(content) is str:
+            if content.startswith('/') and not os.path.exists(content):
+                invalid_file_paths.append(content)
+        return invalid_file_paths
+
+    @staticmethod
+    def _find_config_file():
+        """
+        Find config file several places
+        :return: Path to the config
+        """
+        for config in [os.getenv('REPORTGENERATIONCONFIG'), os.path.expanduser('~/.reportgeneration.yaml')]:
+            if config and os.path.isfile(config):
+                return config
+        raise Exception('Could not find config file in env variable or home')
+
+    @classmethod
+    def _merge_dicts(cls, default_dict, override_dict):
+        """
+        Recursively merge a default dict and an overriding dict.
+        """
+        for k in set(override_dict.keys()).union(default_dict.keys()):
+            if k in default_dict and k in override_dict:
+                if type(default_dict[k]) is dict and type(override_dict[k]) is dict:
+                    yield k, dict(cls._merge_dicts(default_dict[k], override_dict[k]))
+                else:
+                    yield k, override_dict[k]
+            elif k in default_dict:
+                yield k, default_dict[k]
+            else:
+                yield k, override_dict[k]
+
+    def __getitem__(self, item):
+        """
+        Allow dict-style access, e.g. config['this'] or config['this']['that']
+        """
+        return self.content[item]

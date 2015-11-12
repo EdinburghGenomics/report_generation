@@ -3,12 +3,15 @@ from argparse import ArgumentParser
 import glob
 import logging
 import os
+import requests
+from report_generation.config import Configuration
 from report_generation.formaters import format_info
 from report_generation.model import Info, ELEMENT_NB_READS_SEQUENCED, \
     ELEMENT_NB_MAPPED_READS, ELEMENT_NB_DUPLICATE_READS, ELEMENT_NB_PROPERLY_MAPPED, \
     ELEMENT_MEDIAN_COVERAGE, ELEMENT_PC_DUPLICATE_READS, ELEMENT_PC_PROPERLY_MAPPED, \
     ELEMENT_PC_BASES_CALLABLE, ELEMENT_SAMPLE_INTERNAL_ID, ELEMENT_SAMPLE_EXTERNAL_ID, ELEMENT_NB_READS_PASS_FILTER, \
-    ELEMENT_NB_READS_ADAPTER_TRIMMED, ELEMENT_PC_MAPPED_READS
+    ELEMENT_NB_READS_ADAPTER_TRIMMED, ELEMENT_PC_MAPPED_READS, ELEMENT_PROJECT, ELEMENT_YIELD, \
+    ELEMENT_LIBRARY_INTERNAL_ID, ELEMENT_PC_Q30_R1, ELEMENT_PC_Q30_R2
 from report_generation.readers.mapping_stats_parsers import parse_bamtools_stats, parse_callable_bed_file, \
     parse_highdepth_yaml_file
 
@@ -16,10 +19,10 @@ __author__ = 'tcezard'
 
 
 class Bcbio_report:
-    headers = [ELEMENT_SAMPLE_INTERNAL_ID, ELEMENT_SAMPLE_EXTERNAL_ID, ELEMENT_NB_READS_ADAPTER_TRIMMED,
-               ELEMENT_NB_MAPPED_READS, ELEMENT_PC_MAPPED_READS, ELEMENT_NB_DUPLICATE_READS, ELEMENT_PC_DUPLICATE_READS,
+    headers = [ELEMENT_PROJECT, ELEMENT_SAMPLE_INTERNAL_ID, ELEMENT_SAMPLE_EXTERNAL_ID, ELEMENT_LIBRARY_INTERNAL_ID,
+               ELEMENT_NB_READS_PASS_FILTER, ELEMENT_NB_READS_ADAPTER_TRIMMED, ELEMENT_NB_MAPPED_READS, ELEMENT_PC_MAPPED_READS, ELEMENT_NB_DUPLICATE_READS, ELEMENT_PC_DUPLICATE_READS,
                ELEMENT_NB_PROPERLY_MAPPED, ELEMENT_PC_PROPERLY_MAPPED, ELEMENT_MEDIAN_COVERAGE,
-               ELEMENT_PC_BASES_CALLABLE]
+               ELEMENT_PC_BASES_CALLABLE, ELEMENT_YIELD, ELEMENT_PC_Q30_R1, ELEMENT_PC_Q30_R2]
 
     def __init__(self, bcbio_dirs):
         self.bcbio_dirs=bcbio_dirs
@@ -30,19 +33,22 @@ class Bcbio_report:
 
     def _populate_lib_info(self, sample_dir):
         lib_info = Info()
-
-        sample_name = os.path.basename(os.path.dirname(sample_dir))
+        sample_name = os.path.basename(sample_dir)
+        project_name = os.path.basename(os.path.dirname(sample_dir))
         lib_info[ELEMENT_SAMPLE_INTERNAL_ID]= sample_name
+        lib_info[ELEMENT_PROJECT]= project_name
         fastq_file = glob.glob(os.path.join(sample_dir,"*_R1.fastq.gz"))[0]
         external_sample_name = os.path.basename(fastq_file)[:-len("_R1.fastq.gz")]
         lib_info[ELEMENT_SAMPLE_EXTERNAL_ID]= external_sample_name
 
-        bamtools_path = os.path.join(sample_dir, 'bamtools_stats.txt')
-        total_reads, mapped_reads, duplicate_reads, proper_pairs = parse_bamtools_stats(bamtools_path)
-        lib_info[ELEMENT_NB_READS_ADAPTER_TRIMMED]= int(total_reads)
-        lib_info[ELEMENT_NB_MAPPED_READS]= int(mapped_reads)
-        lib_info[ELEMENT_NB_DUPLICATE_READS]= int(duplicate_reads)
-        lib_info[ELEMENT_NB_PROPERLY_MAPPED]= int(proper_pairs)
+        bamtools_path = glob.glob(os.path.join(sample_dir, 'bamtools_stats.txt'))
+        if bamtools_path:
+            total_reads, mapped_reads, duplicate_reads, proper_pairs = parse_bamtools_stats(bamtools_path[0])
+            lib_info[ELEMENT_NB_READS_PASS_FILTER]= int(total_reads)
+            lib_info[ELEMENT_NB_READS_ADAPTER_TRIMMED]= int(total_reads)
+            lib_info[ELEMENT_NB_MAPPED_READS]= int(mapped_reads)
+            lib_info[ELEMENT_NB_DUPLICATE_READS]= int(duplicate_reads)
+            lib_info[ELEMENT_NB_PROPERLY_MAPPED]= int(proper_pairs)
 
         yaml_metric_paths = glob.glob(os.path.join(sample_dir, '*%s-sort-highdepth-stats.yaml'%external_sample_name))
         if yaml_metric_paths:
@@ -72,7 +78,18 @@ class Bcbio_report:
     def write_report_json(self):
         return format_info(self.all_info, self.headers, style='json')
 
+    def send_data(self):
+        cfg = Configuration()
 
+        for info in self.all_info:
+            array_json = format_info([info], self.headers, style='array')
+            json = array_json[0]
+            sample_id = json.get('sample_id')
+            url=cfg.query('rest_api','url') + 'samples/'
+            print(json)
+            r = requests.request('POST', url, json=array_json)
+            print(r.status_code, r.reason)
+            print(r.text)
 
     def __str__(self):
         return self.write_report_wiki()
@@ -82,7 +99,9 @@ def main():
     #Setup options
     argparser=_prepare_argparser()
     args = argparser.parse_args()
-    if args.style == 'wiki':
+    if args.send_data:
+        Bcbio_report(args.bcbio_dirs).send_data()
+    elif args.style == 'wiki':
         print(Bcbio_report(args.bcbio_dirs).write_report_wiki())
     elif args.style == 'json':
         print(Bcbio_report(args.bcbio_dirs).write_report_json())
@@ -91,12 +110,15 @@ def _prepare_argparser():
     """Prepare optparser object. New arguments will be added in this
     function first.
     """
-    description = """Simple script that parse 10015TA0004 outputs and generate a wiki table"""
+    description = """Simple script that parse bcbio outputs and generate a wiki table"""
 
     argparser = ArgumentParser(description=description)
 
-    argparser.add_argument("-d", "--bcbio_dir", dest="bcbio_dirs", type=str, nargs='+', help="The directories containing the bcbio data.")
+    argparser.add_argument("-d", "--bcbio_dir", dest="bcbio_dirs", type=str, nargs='+',
+                           help="The directories containing the bcbio data.")
     argparser.add_argument("--style", dest="style", type=str, help="The style of the report.", default='wiki')
+    argparser.add_argument("--send_data", dest="send_data", action='store_true', default=False,
+                           help="send data to the reporting app instead of printing the report.")
     return argparser
 
 

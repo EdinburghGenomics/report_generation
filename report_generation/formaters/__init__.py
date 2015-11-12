@@ -66,5 +66,7 @@ def format_info(list_info, headers, style="wiki"):
         return table
     elif style == "json":
         return json.dumps([info.format_entry_dict(headers, style) for info in list_info], indent=4)
+    elif style == "array":
+        return [info.format_entry_dict(headers, 'json') for info in list_info]
 
 

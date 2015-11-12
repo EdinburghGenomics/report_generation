@@ -4,13 +4,17 @@ __author__ = 'tcezard'
 
 class Piece_of_info():
     """Define the header and formatter for a piece of information"""
-    def __init__(self, key, formatter=default_formatter, formula=None):
+    def __init__(self, key, text=None, formatter=default_formatter, formula=None):
         self.key = key
+        if text:
+            self.text=text
+        else:
+            self.text=key
         self.formatter = formatter
         self.formula=formula
 
     def __repr__(self):
-        return  self.key
+        return self.text
 
     __str__ = __repr__
 
@@ -29,59 +33,219 @@ def divide(info, key1, key2):
     else:
         return 'nan'
 
-ELEMENT_PROJECT = Piece_of_info(key='Project', formatter=default_formatter)
-ELEMENT_LIBRARY_INTERNAL_ID = Piece_of_info(key='Library LIMS id', formatter=default_formatter)
-ELEMENT_SAMPLE_INTERNAL_ID = Piece_of_info(key='Sample LIMS id', formatter=default_formatter)
-ELEMENT_SAMPLE_EXTERNAL_ID = Piece_of_info(key='User id', formatter=default_formatter)
-ELEMENT_NB_READS_SEQUENCED = Piece_of_info(key='Nb of reads', formatter=format_longint)
-ELEMENT_NB_READS_PASS_FILTER = Piece_of_info(key='Passing filter reads', formatter=format_longint)
-ELEMENT_NB_READS_ADAPTER_TRIMMED = Piece_of_info(key='No adapter reads', formatter=format_longint)
-ELEMENT_PC_PASS_FILTER = Piece_of_info(key='%PF', formatter=format_percent,
-                                       formula=[divide, ELEMENT_NB_READS_PASS_FILTER, ELEMENT_NB_READS_SEQUENCED])
-ELEMENT_NB_MAPPED_READS = Piece_of_info(key='Nb mapped reads', formatter=format_longint)
-ELEMENT_PC_MAPPED_READS = Piece_of_info(key='% mapped reads', formatter=format_percent,
-                                        formula=[divide, ELEMENT_NB_MAPPED_READS, ELEMENT_NB_READS_ADAPTER_TRIMMED])
-ELEMENT_NB_SEC_MAPPED_READS = Piece_of_info(key='Nb secondary alignments', formatter=format_longint)
-ELEMENT_PC_SEC_MAPPED_READS = Piece_of_info(key='% secondary alignments', formatter=format_percent,
-                                            formula=[divide, ELEMENT_NB_SEC_MAPPED_READS, ELEMENT_NB_READS_ADAPTER_TRIMMED])
-ELEMENT_NB_DUPLICATE_READS = Piece_of_info(key='Nb duplicate reads', formatter=format_longint)
-ELEMENT_PC_DUPLICATE_READS = Piece_of_info(key='% duplicate reads', formatter=format_percent,
-                                           formula=[divide, ELEMENT_NB_DUPLICATE_READS, ELEMENT_NB_MAPPED_READS])
-ELEMENT_NB_PROPERLY_MAPPED = Piece_of_info(key='Nb properly mapped reads', formatter=format_longint)
-ELEMENT_PC_PROPERLY_MAPPED = Piece_of_info(key='% properly mapped reads', formatter=format_percent,
-                                           formula=[divide, ELEMENT_NB_PROPERLY_MAPPED, ELEMENT_NB_MAPPED_READS])
-ELEMENT_MEDIAN_INSERT_SIZE = Piece_of_info(key='Median Insert Size', formatter=format_float)
-ELEMENT_LIBRARY_MEAN_INSERT_SIZE = Piece_of_info(key='Mean Insert Size', formatter=format_longint)
-ELEMENT_LIBRARY_STDDEV_INSERT_SIZE = Piece_of_info(key='Std dev Insert Size', formatter=format_longint)
-ELEMENT_MEAN_COVERAGE = Piece_of_info(key='Mean coverage', formatter=format_float)
-ELEMENT_MEDIAN_COVERAGE = Piece_of_info(key='Median coverage', formatter=format_longint)
-ELEMENT_NB_BASES_CALLABLE = Piece_of_info(key='Callable', formatter=format_longint)
-ELEMENT_PC_BASES_CALLABLE = Piece_of_info(key='%Callable', formatter=format_percent)
-ELEMENT_NB_BASES_NO_COVERAGE = Piece_of_info(key='No_Coverage', formatter=format_longint)
-ELEMENT_NB_BASES_LOW_COVERAGE = Piece_of_info(key='Low_Coverage', formatter=format_longint)
-ELEMENT_NB_BASES_EXCESS_COVERAGE = Piece_of_info(key='Excess_Coverage', formatter=format_longint)
-ELEMENT_NB_BASES_POOR_QUALITY = Piece_of_info(key='Poor_Quality', formatter=format_longint)
-ELEMENT_NB_BASES_10X = Piece_of_info(key='Nb bases 10X cov', formatter=format_longint)
-ELEMENT_PC_BASES_10X = Piece_of_info(key='% bases 10X cov', formatter=format_percent)
-ELEMENT_NB_BASES_30X = Piece_of_info(key='Nb bases 30X cov', formatter=format_longint)
-ELEMENT_PC_BASES_30X = Piece_of_info(key='% bases 30X cov', formatter=format_percent)
-ELEMENT_NB_SNP_CONCORDANT = Piece_of_info(key='Nb SNPs concordant', formatter=format_longint)
-ELEMENT_PC_SNP_CONCORDANT = Piece_of_info(key='% SNPs concordant', formatter=format_percent)
-ELEMENT_NB_INDEL_CONCORDANT = Piece_of_info(key='Nb Indels concordant', formatter=format_longint)
-ELEMENT_PC_INDEL_CONCORDANT = Piece_of_info(key='% Indels concordant', formatter=format_percent)
-ELEMENT_RUN_NAME = Piece_of_info(key='Run name', formatter=default_formatter)
-ELEMENT_LANE = Piece_of_info(key='Lane', formatter=default_formatter)
-ELEMENT_BARCODE = Piece_of_info(key='Barcode', formatter=default_formatter)
-ELEMENT_NB_BASE = Piece_of_info(key='Nb bases', formatter=format_longint)
-ELEMENT_NB_Q30_R1 = Piece_of_info(key='Nb bases Q30 R1', formatter=format_longint)
-ELEMENT_NB_Q30_R2 = Piece_of_info(key='Nb bases Q30 R2', formatter=format_longint)
-ELEMENT_PC_Q30_R1 = Piece_of_info(key='%Q30 R1', formatter=format_percent,
-                                  formula=[divide, ELEMENT_NB_Q30_R1,ELEMENT_NB_BASE])
-ELEMENT_PC_Q30_R2 = Piece_of_info(key='%Q30 R2', formatter=format_percent,
-                                  formula=[divide, ELEMENT_NB_Q30_R2,ELEMENT_NB_BASE])
-ELEMENT_YIELD = Piece_of_info(key='Yield Gb', formatter=format_float,
-                                  formula=[divide, ELEMENT_NB_BASE, 1000000000])
-ELEMENT_PC_READ_IN_LANE = Piece_of_info(key='%read in lane', formatter=format_percent)
+ELEMENT_PROJECT = Piece_of_info(
+    key='project',
+    text='Project',
+    formatter=default_formatter
+)
+ELEMENT_LIBRARY_INTERNAL_ID = Piece_of_info(
+    key='library_id',
+    text='Library LIMS id',
+    formatter=default_formatter
+)
+ELEMENT_SAMPLE_INTERNAL_ID = Piece_of_info(
+    key='sample_id',
+    text='Sample LIMS id',
+    formatter=default_formatter
+)
+ELEMENT_SAMPLE_EXTERNAL_ID = Piece_of_info(
+    key='user_sample_id',
+    text='User id',
+    formatter=default_formatter
+)
+ELEMENT_NB_READS_SEQUENCED = Piece_of_info(
+    key='read_sequenced',
+    text='Nb of reads',
+    formatter=format_longint
+)
+ELEMENT_NB_READS_PASS_FILTER = Piece_of_info(
+    key='passing_filter_reads',
+    text='Passing filter reads',
+    formatter=format_longint
+)
+ELEMENT_NB_READS_ADAPTER_TRIMMED = Piece_of_info(
+    key='initial_reads',
+    text='No adapter reads',
+    formatter=format_longint
+)
+ELEMENT_PC_PASS_FILTER = Piece_of_info(
+    key='pc_pass_filter',
+    text='%PF',
+    formatter=format_percent,
+    formula=[divide, ELEMENT_NB_READS_PASS_FILTER, ELEMENT_NB_READS_SEQUENCED]
+)
+ELEMENT_NB_MAPPED_READS = Piece_of_info(
+    key='nb_mapped_reads',
+    text='Nb mapped reads',
+    formatter=format_longint
+)
+ELEMENT_PC_MAPPED_READS = Piece_of_info(
+    key='pc_mapped_reads',
+    text='% mapped reads',
+    formatter=format_percent,
+    formula=[divide, ELEMENT_NB_MAPPED_READS, ELEMENT_NB_READS_ADAPTER_TRIMMED]
+)
+ELEMENT_NB_SEC_MAPPED_READS = Piece_of_info(
+    key='Nb secondary alignments',
+    formatter=format_longint
+)
+ELEMENT_PC_SEC_MAPPED_READS = Piece_of_info(
+    key='% secondary alignments',
+    formatter=format_percent,
+    formula=[divide, ELEMENT_NB_SEC_MAPPED_READS, ELEMENT_NB_READS_ADAPTER_TRIMMED]
+)
+ELEMENT_NB_DUPLICATE_READS = Piece_of_info(
+    key='nb_duplicate_reads',
+    text='Nb duplicate reads',
+    formatter=format_longint
+)
+ELEMENT_PC_DUPLICATE_READS = Piece_of_info(
+    key='pc_duplicate_reads',
+    text='% duplicate reads',
+    formatter=format_percent,
+    formula=[divide, ELEMENT_NB_DUPLICATE_READS, ELEMENT_NB_MAPPED_READS]
+)
+ELEMENT_NB_PROPERLY_MAPPED = Piece_of_info(
+    key='nb_properly_mapped_reads',
+    text='Nb properly mapped reads',
+    formatter=format_longint
+)
+ELEMENT_PC_PROPERLY_MAPPED = Piece_of_info(
+    key='pc_properly_mapped_reads',
+    text='% properly mapped reads',
+    formatter=format_percent,
+    formula=[divide, ELEMENT_NB_PROPERLY_MAPPED, ELEMENT_NB_MAPPED_READS]
+)
+ELEMENT_MEDIAN_INSERT_SIZE = Piece_of_info(
+    key='Median Insert Size',
+    formatter=format_float
+)
+ELEMENT_LIBRARY_MEAN_INSERT_SIZE = Piece_of_info(
+    key='Mean Insert Size',
+    formatter=format_longint
+)
+ELEMENT_LIBRARY_STDDEV_INSERT_SIZE = Piece_of_info(
+    key='Std dev Insert Size',
+    formatter=format_longint
+)
+ELEMENT_MEAN_COVERAGE = Piece_of_info(
+    key='Mean coverage',
+    formatter=format_float
+)
+ELEMENT_MEDIAN_COVERAGE = Piece_of_info(
+    key='median_coverage',
+    text='Median coverage',
+    formatter=format_longint
+)
+ELEMENT_NB_BASES_CALLABLE = Piece_of_info(
+    key='Callable',
+    formatter=format_longint
+)
+ELEMENT_PC_BASES_CALLABLE = Piece_of_info(
+    key='pc_callable',
+    text='%Callable',
+    formatter=format_percent
+)
+ELEMENT_NB_BASES_NO_COVERAGE = Piece_of_info(
+    key='No_Coverage',
+    formatter=format_longint
+)
+ELEMENT_NB_BASES_LOW_COVERAGE = Piece_of_info(
+    key='Low_Coverage',
+    formatter=format_longint
+)
+ELEMENT_NB_BASES_EXCESS_COVERAGE = Piece_of_info(
+    key='Excess_Coverage',
+    formatter=format_longint
+)
+ELEMENT_NB_BASES_POOR_QUALITY = Piece_of_info(
+    key='Poor_Quality',
+    formatter=format_longint
+)
+ELEMENT_NB_BASES_10X = Piece_of_info(
+    key='Nb bases 10X cov',
+    formatter=format_longint
+)
+ELEMENT_PC_BASES_10X = Piece_of_info(
+    key='% bases 10X cov',
+    formatter=format_percent
+)
+ELEMENT_NB_BASES_30X = Piece_of_info(
+    key='Nb bases 30X cov',
+    formatter=format_longint
+)
+ELEMENT_PC_BASES_30X = Piece_of_info(
+    key='% bases 30X cov',
+    formatter=format_percent
+)
+ELEMENT_NB_SNP_CONCORDANT = Piece_of_info(
+    key='Nb SNPs concordant',
+    formatter=format_longint
+)
+ELEMENT_PC_SNP_CONCORDANT = Piece_of_info(
+    key='% SNPs concordant',
+    formatter=format_percent
+)
+ELEMENT_NB_INDEL_CONCORDANT = Piece_of_info(
+    key='Nb Indels concordant',
+    formatter=format_longint
+)
+ELEMENT_PC_INDEL_CONCORDANT = Piece_of_info(
+    key='% Indels concordant',
+    formatter=format_percent
+)
+ELEMENT_RUN_NAME = Piece_of_info(
+    key='run_id',
+    text='Run name',
+    formatter=default_formatter
+)
+ELEMENT_LANE = Piece_of_info(
+    key = 'lane',
+    text='Lane',
+    formatter=default_formatter
+)
+ELEMENT_BARCODE = Piece_of_info(
+    key='barcode',
+    text='Barcode',
+    formatter=default_formatter
+)
+ELEMENT_NB_BASE = Piece_of_info(
+    key='Nb bases',
+    formatter=format_longint
+)
+ELEMENT_NB_Q30_R1 = Piece_of_info(
+    key='pc_q30_r1',
+    text='Nb bases Q30 R1',
+    formatter=format_longint
+)
+ELEMENT_NB_Q30_R2 = Piece_of_info(
+    key='pc_q30_r2',
+    text='Nb bases Q30 R2',
+    formatter=format_longint
+)
+ELEMENT_PC_Q30_R1 = Piece_of_info(
+    key='pc_q30_r1',
+    text='%Q30 R1',
+    formatter=format_percent,
+    formula=[divide, ELEMENT_NB_Q30_R1,ELEMENT_NB_BASE])
+
+ELEMENT_PC_Q30_R2 = Piece_of_info(
+    key='pc_q30_r2',
+    text='%Q30 R2',
+    formatter=format_percent,
+    formula=[divide, ELEMENT_NB_Q30_R2,ELEMENT_NB_BASE]
+)
+ELEMENT_YIELD = Piece_of_info(
+    key='yield_in_gb',
+    text='Yield Gb',
+    formatter=format_float,
+    formula=[divide, ELEMENT_NB_BASE, 1000000000]
+)
+ELEMENT_PC_READ_IN_LANE = Piece_of_info(
+    key='pc_reads_in_lane',
+    text='%read in lane',
+    formatter=format_percent
+)
 
 class Info:
     """"""
@@ -116,7 +280,7 @@ class Info:
             if not value and key.formula:
                 value = key.formula[0](self, *key.formula[1:])
             if not value:
-                value='NA'
+                value=''
             out.append(key.formatter(value, style=style))
         return out
 
@@ -124,7 +288,7 @@ class Info:
         return '| %s |'%(' | '.join(self.format_line(keys, style="wiki")))
 
     def format_entry_dict(self, headers, style):
-        return dict(zip([str(h) for h in headers], self.format_line(headers, style)))
+        return dict(zip([h.key for h in headers], self.format_line(headers, style)))
 
     def __add__(self, other):
         new_info = Info()
