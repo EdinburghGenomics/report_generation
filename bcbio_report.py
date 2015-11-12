@@ -30,12 +30,13 @@ class Bcbio_report:
         for bcbio_dir in self.bcbio_dirs:
             self.all_info.append(self._populate_lib_info(bcbio_dir))
 
-
     def _populate_lib_info(self, sample_dir):
         lib_info = Info()
+        sample_dir = os.path.abspath(sample_dir)
         sample_name = os.path.basename(sample_dir)
         project_name = os.path.basename(os.path.dirname(sample_dir))
         lib_info[ELEMENT_SAMPLE_INTERNAL_ID]= sample_name
+        lib_info[ELEMENT_LIBRARY_INTERNAL_ID]= sample_name
         lib_info[ELEMENT_PROJECT]= project_name
         fastq_file = glob.glob(os.path.join(sample_dir,"*_R1.fastq.gz"))[0]
         external_sample_name = os.path.basename(fastq_file)[:-len("_R1.fastq.gz")]

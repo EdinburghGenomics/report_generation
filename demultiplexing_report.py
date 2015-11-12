@@ -9,7 +9,7 @@ from report_generation.formaters import format_percent, format_info
 from report_generation.model import Info, ELEMENT_PROJECT, ELEMENT_LIBRARY_INTERNAL_ID, ELEMENT_NB_READS_SEQUENCED, \
     ELEMENT_NB_READS_PASS_FILTER, ELEMENT_RUN_NAME, ELEMENT_LANE, ELEMENT_BARCODE, ELEMENT_NB_Q30_R1, ELEMENT_NB_BASE, \
     ELEMENT_NB_Q30_R2, ELEMENT_PC_PASS_FILTER, ELEMENT_PC_Q30_R1, ELEMENT_PC_Q30_R2, ELEMENT_PC_READ_IN_LANE, \
-    ELEMENT_YIELD, ELEMENT_SAMPLE_EXTERNAL_ID, ELEMENT_SAMPLE_INTERNAL_ID
+    ELEMENT_YIELD, ELEMENT_SAMPLE_EXTERNAL_ID, ELEMENT_SAMPLE_INTERNAL_ID, ELEMENT_ID
 from report_generation.readers.demultiplexing_parsers import parse_demultiplexing_stats, parse_conversion_stats
 
 __author__ = 'tcezard'
@@ -18,20 +18,16 @@ class Demultiplexing_report:
 
     def __init__(self, run_id, conversion_xml_file, demultiplexing_stats_xml_file):
         self.run_id=run_id
-        #self.headers_barcodes = [ELEMENT_RUN_NAME, ELEMENT_LANE, ELEMENT_PC_PASS_FILTER, ELEMENT_PROJECT,
-        #                         ELEMENT_LIBRARY_INTERNAL_ID, ELEMENT_SAMPLE_INTERNAL_ID, ELEMENT_BARCODE,
-        #                         ELEMENT_NB_READS_PASS_FILTER, ELEMENT_PC_READ_IN_LANE, ELEMENT_YIELD,
-        #                         ELEMENT_PC_Q30_R1,ELEMENT_PC_Q30_R2]
-        self.headers_barcodes = [ELEMENT_RUN_NAME, ELEMENT_LANE, ELEMENT_PC_PASS_FILTER, ELEMENT_PROJECT,
+        self.headers_barcodes = [ELEMENT_ID, ELEMENT_RUN_NAME, ELEMENT_LANE, ELEMENT_PC_PASS_FILTER, ELEMENT_PROJECT,
                                  ELEMENT_LIBRARY_INTERNAL_ID, ELEMENT_SAMPLE_INTERNAL_ID, ELEMENT_BARCODE,
-                                 ELEMENT_NB_READS_PASS_FILTER, ELEMENT_YIELD,
+                                 ELEMENT_NB_READS_PASS_FILTER, ELEMENT_PC_READ_IN_LANE, ELEMENT_YIELD,
                                  ELEMENT_PC_Q30_R1,ELEMENT_PC_Q30_R2]
         self.headers_lane = [ELEMENT_RUN_NAME, ELEMENT_LANE, ELEMENT_PC_PASS_FILTER, ELEMENT_NB_READS_PASS_FILTER, ELEMENT_YIELD,
                    ELEMENT_PC_Q30_R1, ELEMENT_PC_Q30_R2]
         self.headers_samples = [ELEMENT_PROJECT, ELEMENT_LIBRARY_INTERNAL_ID, ELEMENT_BARCODE,
                    ELEMENT_NB_READS_PASS_FILTER, ELEMENT_YIELD, ELEMENT_PC_Q30_R1, ELEMENT_PC_Q30_R2]
 
-        self.headers_unexpected = [ELEMENT_RUN_NAME, ELEMENT_LANE, ELEMENT_BARCODE, ELEMENT_NB_READS_PASS_FILTER, ELEMENT_PC_READ_IN_LANE]
+        self.headers_unexpected = [ELEMENT_ID, ELEMENT_RUN_NAME, ELEMENT_LANE, ELEMENT_BARCODE, ELEMENT_NB_READS_PASS_FILTER, ELEMENT_PC_READ_IN_LANE]
 
 
         self._populate_barcode_info(conversion_xml_file, demultiplexing_stats_xml_file)
@@ -64,6 +60,7 @@ class Demultiplexing_report:
         for project, library, lane, barcode, clust_count, clust_count_pf, nb_bases,\
             nb_bases_r1q30, nb_bases_r2q30, in all_barcodes_per_lanes:
             barcode_info = Info()
+            barcode_info[ELEMENT_ID] = '%s_%s_%s'%(self.run_id, lane, barcode)
             barcode_info[ELEMENT_RUN_NAME]=self.run_id
             barcode_info[ELEMENT_PROJECT]=project
             barcode_info[ELEMENT_LIBRARY_INTERNAL_ID]=library
@@ -80,6 +77,7 @@ class Demultiplexing_report:
         self.unexpected_barcode_info=[]
         for lane, barcode, clust_count in top_unknown_barcodes_per_lanes:
             barcode_info = Info()
+            barcode_info[ELEMENT_ID] = '%s_%s_%s'%(self.run_id, lane, barcode)
             barcode_info[ELEMENT_RUN_NAME]=self.run_id
             barcode_info[ELEMENT_LANE]=lane
             barcode_info[ELEMENT_BARCODE]=barcode
@@ -152,9 +150,9 @@ class Demultiplexing_report:
         #Send run elements
         array_json = format_info(self.barcodes_info, self.headers_barcodes, style='array')
         url=cfg.query('rest_api','url') + 'run_elements/'
-        #r = requests.request('POST', url, json=array_json)
-        #print(r.status_code, r.reason)
-        #print(r.text)
+        r = requests.request('POST', url, json=array_json)
+        print(r.status_code, r.reason)
+        pprint(r.json())
 
         #Send unexpected barcodes
         array_json = format_info(self.unexpected_barcode_info, self.headers_unexpected, style='array')

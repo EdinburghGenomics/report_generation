@@ -33,6 +33,11 @@ def divide(info, key1, key2):
     else:
         return 'nan'
 
+ELEMENT_ID = Piece_of_info(
+    key='id',
+    text=None,
+    formatter=default_formatter
+)
 ELEMENT_PROJECT = Piece_of_info(
     key='project',
     text='Project',
