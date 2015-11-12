@@ -9,7 +9,8 @@ from report_generation.formaters import format_percent, format_info
 from report_generation.model import Info, ELEMENT_PROJECT, ELEMENT_LIBRARY_INTERNAL_ID, ELEMENT_NB_READS_SEQUENCED, \
     ELEMENT_NB_READS_PASS_FILTER, ELEMENT_RUN_NAME, ELEMENT_LANE, ELEMENT_BARCODE, ELEMENT_NB_Q30_R1, ELEMENT_NB_BASE, \
     ELEMENT_NB_Q30_R2, ELEMENT_PC_PASS_FILTER, ELEMENT_PC_Q30_R1, ELEMENT_PC_Q30_R2, ELEMENT_PC_READ_IN_LANE, \
-    ELEMENT_YIELD, ELEMENT_SAMPLE_EXTERNAL_ID, ELEMENT_SAMPLE_INTERNAL_ID, ELEMENT_ID
+    ELEMENT_YIELD, ELEMENT_SAMPLE_EXTERNAL_ID, ELEMENT_SAMPLE_INTERNAL_ID, ELEMENT_ID, ELEMENT_NB_BASE_R1, \
+    ELEMENT_NB_BASE_R2
 from report_generation.readers.demultiplexing_parsers import parse_demultiplexing_stats, parse_conversion_stats
 
 __author__ = 'tcezard'
@@ -21,7 +22,7 @@ class Demultiplexing_report:
         self.headers_barcodes = [ELEMENT_ID, ELEMENT_RUN_NAME, ELEMENT_LANE, ELEMENT_PC_PASS_FILTER, ELEMENT_PROJECT,
                                  ELEMENT_LIBRARY_INTERNAL_ID, ELEMENT_SAMPLE_INTERNAL_ID, ELEMENT_BARCODE,
                                  ELEMENT_NB_READS_PASS_FILTER, ELEMENT_PC_READ_IN_LANE, ELEMENT_YIELD,
-                                 ELEMENT_PC_Q30_R1,ELEMENT_PC_Q30_R2]
+                                 ELEMENT_PC_Q30_R1, ELEMENT_PC_Q30_R2]
         self.headers_lane = [ELEMENT_RUN_NAME, ELEMENT_LANE, ELEMENT_PC_PASS_FILTER, ELEMENT_NB_READS_PASS_FILTER, ELEMENT_YIELD,
                    ELEMENT_PC_Q30_R1, ELEMENT_PC_Q30_R2]
         self.headers_samples = [ELEMENT_PROJECT, ELEMENT_LIBRARY_INTERNAL_ID, ELEMENT_BARCODE,
@@ -69,7 +70,8 @@ class Demultiplexing_report:
             barcode_info[ELEMENT_NB_READS_SEQUENCED]=int(clust_count)
             barcode_info[ELEMENT_NB_READS_PASS_FILTER]=int(clust_count_pf)
             #For the paired end reads
-            barcode_info[ELEMENT_NB_BASE]=int(nb_bases)*2
+            barcode_info[ELEMENT_NB_BASE_R1]=int(nb_bases)
+            barcode_info[ELEMENT_NB_BASE_R2]=int(nb_bases)
             barcode_info[ELEMENT_NB_Q30_R1]=int(nb_bases_r1q30)
             barcode_info[ELEMENT_NB_Q30_R2]=int(nb_bases_r2q30)
             self.barcodes_info.append(barcode_info)

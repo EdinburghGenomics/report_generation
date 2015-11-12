@@ -18,7 +18,7 @@ class Piece_of_info():
 
     __str__ = __repr__
 
-def divide(info, key1, key2):
+def extract_data(info, key1, key2):
     val1=val2=None
     if isinstance(key1, Piece_of_info):
         val1 = info.get(key1, None)
@@ -28,8 +28,26 @@ def divide(info, key1, key2):
         val2 = info.get(key2, None)
     else:
         val2 = key2
+    return val1, val2
+
+def divide(info, key1, key2):
+    val1, val2 = extract_data(info, key1, key2)
     if val1 and val2 and val2!=0:
         return float(val1)/float(val2)
+    else:
+        return 'nan'
+
+def multiply(info, key1, key2):
+    val1, val2 = extract_data(info, key1, key2)
+    if val1 and val2:
+        return float(val1)*float(val2)
+    else:
+        return 'nan'
+
+def add(info, key1, key2):
+    val1, val2 = extract_data(info, key1, key2)
+    if val1 and val2:
+        return float(val1)+float(val2)
     else:
         return 'nan'
 
@@ -214,9 +232,18 @@ ELEMENT_BARCODE = Piece_of_info(
     text='Barcode',
     formatter=default_formatter
 )
+ELEMENT_NB_BASE_R1 = Piece_of_info(
+    key='Nb bases in read 1',
+    formatter=format_longint
+)
+ELEMENT_NB_BASE_R2 = Piece_of_info(
+    key='Nb bases in read 2',
+    formatter=format_longint
+)
 ELEMENT_NB_BASE = Piece_of_info(
     key='Nb bases',
-    formatter=format_longint
+    formatter=format_longint,
+    formula=[add, ELEMENT_NB_BASE_R1, ELEMENT_NB_BASE_R2]
 )
 ELEMENT_NB_Q30_R1 = Piece_of_info(
     key='pc_q30_r1',
@@ -232,13 +259,13 @@ ELEMENT_PC_Q30_R1 = Piece_of_info(
     key='pc_q30_r1',
     text='%Q30 R1',
     formatter=format_percent,
-    formula=[divide, ELEMENT_NB_Q30_R1,ELEMENT_NB_BASE])
+    formula=[divide, ELEMENT_NB_Q30_R1,ELEMENT_NB_BASE_R1])
 
 ELEMENT_PC_Q30_R2 = Piece_of_info(
     key='pc_q30_r2',
     text='%Q30 R2',
     formatter=format_percent,
-    formula=[divide, ELEMENT_NB_Q30_R2,ELEMENT_NB_BASE]
+    formula=[divide, ELEMENT_NB_Q30_R2,ELEMENT_NB_BASE_R2]
 )
 ELEMENT_YIELD = Piece_of_info(
     key='yield_in_gb',
@@ -269,8 +296,16 @@ class Info:
         else:
             raise ValueError("Only instances of Piece_of_info can be used as Key")
 
-    def get(self, *args, **kwargs):
-        return self._info.get(*args, **kwargs)
+    def get(self, key, *args, **kwargs):
+        #Get the info stored
+        value = self._info.get(key, None)
+        #or get the info through formula
+        if not value and key.formula:
+            value = key.formula[0](self, *key.formula[1:])
+        #or get the info through the passed default value
+        if not value:
+            value = self._info.get(key, *args, **kwargs)
+        return value
 
     def __contains__(self, item):
         return item in self._info
@@ -281,13 +316,12 @@ class Info:
     def format_line(self, keys, style=None):
         out = []
         for key in keys:
-            value = self._info.get(key, None)
-            if not value and key.formula:
-                value = key.formula[0](self, *key.formula[1:])
-            if not value:
-                value=''
+            value = self.get(key)
+            if value is None:
+                value = ''
             out.append(key.formatter(value, style=style))
         return out
+
 
     def format_line_wiki(self, keys):
         return '| %s |'%(' | '.join(self.format_line(keys, style="wiki")))
