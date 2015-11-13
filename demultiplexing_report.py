@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from argparse import ArgumentParser
 from collections import defaultdict, Counter
+from urllib.parse import urljoin
 import xml.etree.ElementTree as ET
 from pprint import pprint
 import requests
@@ -15,20 +16,28 @@ from report_generation.readers.demultiplexing_parsers import parse_demultiplexin
 
 __author__ = 'tcezard'
 
+def upload_entry(url, id, payload):
+    """Upload Assuming we know the id of this entry"""
+    url = urljoin(url, id)
+    print(url)
+    r = requests.request('PUT', url, json=payload)
+    print(r.status_code, r.reason)
+    pprint(r.json())
+
+
 class Demultiplexing_report:
 
     def __init__(self, run_id, conversion_xml_file, demultiplexing_stats_xml_file):
         self.run_id=run_id
-        self.headers_barcodes = [ELEMENT_ID, ELEMENT_RUN_NAME, ELEMENT_LANE, ELEMENT_PC_PASS_FILTER, ELEMENT_PROJECT,
+        self.headers_barcodes = [ELEMENT_RUN_NAME, ELEMENT_LANE, ELEMENT_PC_PASS_FILTER, ELEMENT_PROJECT,
                                  ELEMENT_LIBRARY_INTERNAL_ID, ELEMENT_SAMPLE_INTERNAL_ID, ELEMENT_BARCODE,
                                  ELEMENT_NB_READS_PASS_FILTER, ELEMENT_PC_READ_IN_LANE, ELEMENT_YIELD,
                                  ELEMENT_PC_Q30_R1, ELEMENT_PC_Q30_R2]
         self.headers_lane = [ELEMENT_RUN_NAME, ELEMENT_LANE, ELEMENT_PC_PASS_FILTER, ELEMENT_NB_READS_PASS_FILTER, ELEMENT_YIELD,
                    ELEMENT_PC_Q30_R1, ELEMENT_PC_Q30_R2]
-        self.headers_samples = [ELEMENT_PROJECT, ELEMENT_LIBRARY_INTERNAL_ID, ELEMENT_BARCODE,
+        self.headers_samples = [ELEMENT_PROJECT, ELEMENT_LIBRARY_INTERNAL_ID, ELEMENT_SAMPLE_INTERNAL_ID, ELEMENT_BARCODE,
                    ELEMENT_NB_READS_PASS_FILTER, ELEMENT_YIELD, ELEMENT_PC_Q30_R1, ELEMENT_PC_Q30_R2]
-
-        self.headers_unexpected = [ELEMENT_ID, ELEMENT_RUN_NAME, ELEMENT_LANE, ELEMENT_BARCODE, ELEMENT_NB_READS_PASS_FILTER, ELEMENT_PC_READ_IN_LANE]
+        self.headers_unexpected = [ELEMENT_RUN_NAME, ELEMENT_LANE, ELEMENT_BARCODE, ELEMENT_NB_READS_PASS_FILTER, ELEMENT_PC_READ_IN_LANE]
 
 
         self._populate_barcode_info(conversion_xml_file, demultiplexing_stats_xml_file)
@@ -150,18 +159,20 @@ class Demultiplexing_report:
     def send_data(self):
         cfg = Configuration()
         #Send run elements
+        headers=[ELEMENT_ID]
+        headers.extend(self.headers_barcodes)
         array_json = format_info(self.barcodes_info, self.headers_barcodes, style='array')
         url=cfg.query('rest_api','url') + 'run_elements/'
-        r = requests.request('POST', url, json=array_json)
-        print(r.status_code, r.reason)
-        pprint(r.json())
-
+        for payload in array_json:
+            upload_entry(url,payload.get('id'), payload)
+        headers=[ELEMENT_ID]
+        headers.extend(self.headers_barcodes)
         #Send unexpected barcodes
         array_json = format_info(self.unexpected_barcode_info, self.headers_unexpected, style='array')
         url=cfg.query('rest_api','url') + 'unexpected_barcodes/'
-        r = requests.request('POST', url, json=array_json)
-        print(r.status_code, r.reason)
-        pprint(r.json())
+        for payload in array_json:
+            upload_entry(url,payload.get('id'), payload)
+
 
 
     def __str__(self):
