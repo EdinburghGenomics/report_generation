@@ -59,8 +59,8 @@ def substract(info, key1, key2):
         return ''
 
 
-ELEMENT_ID = Piece_of_info(
-    key='id',
+ELEMENT_RUN_ELEMENT_ID = Piece_of_info(
+    key='run_element_id',
     text=None,
     formatter=default_formatter
 )

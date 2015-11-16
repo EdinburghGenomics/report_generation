@@ -8,7 +8,7 @@ from report_generation.model import Info, ELEMENT_PROJECT, ELEMENT_LIBRARY_INTER
     ELEMENT_NB_READS_PASS_FILTER, ELEMENT_RUN_NAME, ELEMENT_LANE, ELEMENT_BARCODE, ELEMENT_NB_Q30_R1, ELEMENT_NB_BASE, \
     ELEMENT_NB_Q30_R2, ELEMENT_PC_PASS_FILTER, ELEMENT_PC_Q30_R1, ELEMENT_PC_Q30_R2, ELEMENT_PC_READ_IN_LANE, \
     ELEMENT_YIELD, ELEMENT_SAMPLE_INTERNAL_ID, ELEMENT_ID, ELEMENT_NB_BASE_R1, \
-    ELEMENT_NB_BASE_R2, ELEMENT_LANE_COEFF_VARIATION, ELEMENT_PC_Q30
+    ELEMENT_NB_BASE_R2, ELEMENT_LANE_COEFF_VARIATION, ELEMENT_PC_Q30, ELEMENT_RUN_ELEMENT_ID
 from report_generation.readers.demultiplexing_parsers import parse_conversion_stats
 from scipy.stats import variation
 from report_generation.readers.sample_sheet import SampleSheet
@@ -183,24 +183,22 @@ class Demultiplexing_report:
         return format_info(self.all_info, self.headers, style='json')
 
     def send_data(self):
-        headers_barcodes = [ELEMENT_ID, ELEMENT_RUN_NAME, ELEMENT_LANE, ELEMENT_PC_PASS_FILTER, ELEMENT_PROJECT,
+        headers_barcodes = [ELEMENT_RUN_ELEMENT_ID, ELEMENT_RUN_NAME, ELEMENT_LANE, ELEMENT_PC_PASS_FILTER, ELEMENT_PROJECT,
                                  ELEMENT_LIBRARY_INTERNAL_ID, ELEMENT_SAMPLE_INTERNAL_ID, ELEMENT_BARCODE,
                                  ELEMENT_NB_READS_PASS_FILTER, ELEMENT_PC_READ_IN_LANE, ELEMENT_YIELD,
                                  ELEMENT_PC_Q30_R1, ELEMENT_PC_Q30_R2]
         headers_samples = [ELEMENT_PROJECT, ELEMENT_LIBRARY_INTERNAL_ID, ELEMENT_SAMPLE_INTERNAL_ID,
                    ELEMENT_NB_READS_PASS_FILTER, ELEMENT_YIELD, ELEMENT_PC_Q30_R1, ELEMENT_PC_Q30_R2]
-        headers_unexpected = [ELEMENT_ID, ELEMENT_RUN_NAME, ELEMENT_LANE, ELEMENT_BARCODE, ELEMENT_NB_READS_PASS_FILTER, ELEMENT_PC_READ_IN_LANE]
+        headers_unexpected = [ELEMENT_RUN_ELEMENT_ID, ELEMENT_RUN_NAME, ELEMENT_LANE, ELEMENT_BARCODE, ELEMENT_NB_READS_PASS_FILTER, ELEMENT_PC_READ_IN_LANE]
 
         cfg = Configuration()
         #Send run elements
-        headers=[ELEMENT_ID]
-        headers.extend(self.headers_barcodes)
         array_json = format_info(self.barcodes_info.values(), headers_barcodes, style='array')
         url=cfg.query('rest_api','url') + 'run_elements/'
         for payload in array_json:
             if not post_entry(url, payload):
-                id = payload.pop(ELEMENT_ID.key)
-                patch_entry(url, payload, **{ELEMENT_ID.key:id})
+                id = payload.pop(ELEMENT_RUN_ELEMENT_ID.key)
+                patch_entry(url, payload, **{ELEMENT_RUN_ELEMENT_ID.key:id})
 
         array_json = format_info(self.libraries_info.values(), headers_samples, style='array')
         url=cfg.query('rest_api','url') + 'samples/'
@@ -214,8 +212,8 @@ class Demultiplexing_report:
         url=cfg.query('rest_api','url') + 'unexpected_barcodes/'
         for payload in array_json:
             if not post_entry(url, payload):
-                id = payload.pop(ELEMENT_ID.key)
-                patch_entry(url, payload, **{ELEMENT_ID.key:id})
+                id = payload.pop(ELEMENT_RUN_ELEMENT_ID.key)
+                patch_entry(url, payload, **{ELEMENT_RUN_ELEMENT_ID.key:id})
 
 
 
