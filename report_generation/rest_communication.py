@@ -1,0 +1,43 @@
+from urllib.parse import urljoin
+import requests
+
+
+def get_document(url, **kwargs):
+    param = []
+    for key in kwargs:
+        param.append('"%s":"%s"'%(key,kwargs.get(key)))
+    if param: url = url + '?where={%s}'%','.join(param)
+    r = requests.request('GET', url)
+    return r.json().get('data')[0]
+
+
+def post_entry(url, payload):
+    """Upload Assuming we know the id of this entry"""
+    r = requests.request('POST', url, json=payload)
+    if r.status_code != 200:
+        print('POST', r.status_code, r.reason, url)
+        return False
+    return True
+
+
+
+def put_entry(url, id, payload):
+    """Upload Assuming we know the id of this entry"""
+    url = urljoin(url, id)
+    r = requests.request('PUT', url, json=payload)
+    if r.status_code != 200:
+        print('PUT', r.status_code, r.reason, url)
+        return False
+    return True
+
+
+def patch_entry(url, payload, **kwargs):
+    """Upload Assuming we know the id of this entry"""
+    doc = get_document(url.rstrip('/'), **kwargs)
+    url = urljoin(url, doc.get('_id'))
+    headers={'If-Match':doc.get('_etag')}
+    r = requests.request('PATCH', url, headers=headers, json=payload)
+    if r.status_code != 200:
+        print('PATCH', r.status_code, r.reason, url)
+        return False
+    return True

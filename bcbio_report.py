@@ -14,6 +14,7 @@ from report_generation.model import Info, ELEMENT_NB_READS_SEQUENCED, \
     ELEMENT_LIBRARY_INTERNAL_ID, ELEMENT_PC_Q30_R1, ELEMENT_PC_Q30_R2
 from report_generation.readers.mapping_stats_parsers import parse_bamtools_stats, parse_callable_bed_file, \
     parse_highdepth_yaml_file
+from report_generation.rest_communication import post_entry, patch_entry
 
 __author__ = 'tcezard'
 
@@ -80,17 +81,16 @@ class Bcbio_report:
         return format_info(self.all_info, self.headers, style='json')
 
     def send_data(self):
-        cfg = Configuration()
 
-        for info in self.all_info:
-            array_json = format_info([info], self.headers, style='array')
-            json = array_json[0]
-            sample_id = json.get('sample_id')
-            url=cfg.query('rest_api','url') + 'samples/'
-            print(json)
-            r = requests.request('POST', url, json=array_json)
-            print(r.status_code, r.reason)
-            print(r.text)
+        cfg = Configuration()
+        headers_samples = [ELEMENT_PROJECT, ELEMENT_LIBRARY_INTERNAL_ID, ELEMENT_SAMPLE_INTERNAL_ID,
+                   ELEMENT_NB_READS_PASS_FILTER, ELEMENT_YIELD, ELEMENT_PC_Q30_R1, ELEMENT_PC_Q30_R2]
+        array_json = format_info(self.all_info, headers_samples, style='array')
+        url=cfg.query('rest_api','url') + 'samples/'
+        for payload in array_json:
+            if not post_entry(url, payload):
+                id = payload.pop(ELEMENT_LIBRARY_INTERNAL_ID.key)
+                patch_entry(url, payload, **{ELEMENT_LIBRARY_INTERNAL_ID.key:id})
 
     def __str__(self):
         return self.write_report_wiki()

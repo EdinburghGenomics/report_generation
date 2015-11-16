@@ -1,66 +1,20 @@
 #!/usr/bin/env python
 from argparse import ArgumentParser
-from collections import defaultdict, Counter
-from urllib.parse import urljoin
-import xml.etree.ElementTree as ET
-from pprint import pprint
+from collections import defaultdict
 import os
-import requests
 from report_generation.config import Configuration
 from report_generation.formaters import format_percent, format_info
 from report_generation.model import Info, ELEMENT_PROJECT, ELEMENT_LIBRARY_INTERNAL_ID, ELEMENT_NB_READS_SEQUENCED, \
     ELEMENT_NB_READS_PASS_FILTER, ELEMENT_RUN_NAME, ELEMENT_LANE, ELEMENT_BARCODE, ELEMENT_NB_Q30_R1, ELEMENT_NB_BASE, \
     ELEMENT_NB_Q30_R2, ELEMENT_PC_PASS_FILTER, ELEMENT_PC_Q30_R1, ELEMENT_PC_Q30_R2, ELEMENT_PC_READ_IN_LANE, \
-    ELEMENT_YIELD, ELEMENT_SAMPLE_EXTERNAL_ID, ELEMENT_SAMPLE_INTERNAL_ID, ELEMENT_ID, ELEMENT_NB_BASE_R1, \
+    ELEMENT_YIELD, ELEMENT_SAMPLE_INTERNAL_ID, ELEMENT_ID, ELEMENT_NB_BASE_R1, \
     ELEMENT_NB_BASE_R2, ELEMENT_LANE_COEFF_VARIATION, ELEMENT_PC_Q30
-from report_generation.readers.demultiplexing_parsers import parse_demultiplexing_stats, parse_conversion_stats
+from report_generation.readers.demultiplexing_parsers import parse_conversion_stats
 from scipy.stats import variation
 from report_generation.readers.sample_sheet import SampleSheet
+from report_generation.rest_communication import post_entry, patch_entry
 
 __author__ = 'tcezard'
-
-
-def get_document(url, **kwargs):
-    param = []
-    for key in kwargs:
-        param.append('"%s":"%s"'%(key,kwargs.get(key)))
-    if param: url = url + '?where={%s}'%','.join(param)
-    r = requests.request('GET', url)
-    return r.json().get('data')[0]
-
-
-def post_entry(url, payload):
-    """Upload Assuming we know the id of this entry"""
-    r = requests.request('POST', url, json=payload)
-    if r.status_code != 200:
-        print('POST', r.status_code, r.reason, url)
-        return False
-    return True
-
-
-
-def put_entry(url, id, payload):
-    """Upload Assuming we know the id of this entry"""
-    url = urljoin(url, id)
-    r = requests.request('PUT', url, json=payload)
-    if r.status_code != 200:
-        print('PUT', r.status_code, r.reason, url)
-        return False
-    return True
-
-
-def patch_entry(url, payload, **kwargs):
-    """Upload Assuming we know the id of this entry"""
-    doc = get_document(url.rstrip('/'), **kwargs)
-    pprint(doc)
-    url = urljoin(url, doc.get('_id'))
-    headers={'If-Match':doc.get('_etag')}
-    r = requests.request('PATCH', url, headers=headers, json=payload)
-    if r.status_code != 200:
-        print('PATCH', r.status_code, r.reason, url)
-        return False
-    return True
-
 
 
 class Demultiplexing_report:
