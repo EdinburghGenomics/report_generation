@@ -19,14 +19,47 @@ from report_generation.readers.sample_sheet import SampleSheet
 
 __author__ = 'tcezard'
 
-def upload_entry(url, id, payload):
+
+def get_document(url, **kwargs):
+    param = []
+    for key in kwargs:
+        param.append('"%s":"%s"'%(key,kwargs.get(key)))
+    if param: url = url + '?where={%s}'%','.join(param)
+    r = requests.request('GET', url)
+    return r.json().get('data')[0]
+
+
+def post_entry(url, payload):
+    """Upload Assuming we know the id of this entry"""
+    r = requests.request('POST', url, json=payload)
+    if r.status_code != 200:
+        print('POST', r.status_code, r.reason, url)
+        return False
+    return True
+
+
+
+def put_entry(url, id, payload):
     """Upload Assuming we know the id of this entry"""
     url = urljoin(url, id)
-    print(url)
     r = requests.request('PUT', url, json=payload)
-    print(r.status_code, r.reason)
-    pprint(r.json())
+    if r.status_code != 200:
+        print('PUT', r.status_code, r.reason, url)
+        return False
+    return True
 
+
+def patch_entry(url, payload, **kwargs):
+    """Upload Assuming we know the id of this entry"""
+    doc = get_document(url.rstrip('/'), **kwargs)
+    pprint(doc)
+    url = urljoin(url, doc.get('_id'))
+    headers={'If-Match':doc.get('_etag')}
+    r = requests.request('PATCH', url, headers=headers, json=payload)
+    if r.status_code != 200:
+        print('PATCH', r.status_code, r.reason, url)
+        return False
+    return True
 
 
 
@@ -196,21 +229,39 @@ class Demultiplexing_report:
         return format_info(self.all_info, self.headers, style='json')
 
     def send_data(self):
+        headers_barcodes = [ELEMENT_ID, ELEMENT_RUN_NAME, ELEMENT_LANE, ELEMENT_PC_PASS_FILTER, ELEMENT_PROJECT,
+                                 ELEMENT_LIBRARY_INTERNAL_ID, ELEMENT_SAMPLE_INTERNAL_ID, ELEMENT_BARCODE,
+                                 ELEMENT_NB_READS_PASS_FILTER, ELEMENT_PC_READ_IN_LANE, ELEMENT_YIELD,
+                                 ELEMENT_PC_Q30_R1, ELEMENT_PC_Q30_R2]
+        headers_samples = [ELEMENT_PROJECT, ELEMENT_LIBRARY_INTERNAL_ID, ELEMENT_SAMPLE_INTERNAL_ID,
+                   ELEMENT_NB_READS_PASS_FILTER, ELEMENT_YIELD, ELEMENT_PC_Q30_R1, ELEMENT_PC_Q30_R2]
+        headers_unexpected = [ELEMENT_ID, ELEMENT_RUN_NAME, ELEMENT_LANE, ELEMENT_BARCODE, ELEMENT_NB_READS_PASS_FILTER, ELEMENT_PC_READ_IN_LANE]
+
         cfg = Configuration()
         #Send run elements
         headers=[ELEMENT_ID]
         headers.extend(self.headers_barcodes)
-        array_json = format_info(self.barcodes_info.values(), self.headers_barcodes, style='array')
+        array_json = format_info(self.barcodes_info.values(), headers_barcodes, style='array')
         url=cfg.query('rest_api','url') + 'run_elements/'
         for payload in array_json:
-            upload_entry(url,payload.get('id'), payload)
-        headers=[ELEMENT_ID]
-        headers.extend(self.headers_barcodes)
+            if not post_entry(url, payload):
+                id = payload.pop(ELEMENT_ID.key)
+                patch_entry(url, payload, **{ELEMENT_ID.key:id})
+
+        array_json = format_info(self.libraries_info.values(), headers_samples, style='array')
+        url=cfg.query('rest_api','url') + 'samples/'
+        for payload in array_json:
+            if not post_entry(url, payload):
+                id = payload.pop(ELEMENT_LIBRARY_INTERNAL_ID.key)
+                patch_entry(url, payload, **{ELEMENT_LIBRARY_INTERNAL_ID.key:id})
+
         #Send unexpected barcodes
-        array_json = format_info(self.unexpected_barcode_info.values(), self.headers_unexpected, style='array')
+        array_json = format_info(self.unexpected_barcode_info.values(), headers_unexpected, style='array')
         url=cfg.query('rest_api','url') + 'unexpected_barcodes/'
         for payload in array_json:
-            upload_entry(url,payload.get('id'), payload)
+            if not post_entry(url, payload):
+                id = payload.pop(ELEMENT_ID.key)
+                patch_entry(url, payload, **{ELEMENT_ID.key:id})
 
 
 
