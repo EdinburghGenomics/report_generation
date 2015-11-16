@@ -13,7 +13,10 @@ def format_percent(data, style='wiki', **kwargs):
     if style=='wiki':
         return '%.2f%%'%(float(data)*100)
     elif style=='json':
-        return float(data)*100
+        if data:
+            return float(data)*100
+        else:
+            return data
     else:
         return default_formatter(data)
 
@@ -23,7 +26,10 @@ def format_float(data, style='wiki', **kwargs):
     if style=='wiki':
         return '%.2f'%data
     elif style=='json':
-        return float(data)
+        if data:
+            return float(data)
+        else:
+            return data
     else:
         return default_formatter(data)
 
@@ -31,7 +37,10 @@ def format_longint(data, style='wiki', **kwargs):
     if style=='wiki':
         return humanize.intcomma(data)
     elif style=='json':
-        return int(data)
+        if data:
+            return int(data)
+        else:
+            return data
     else:
         return default_formatter(data)
 

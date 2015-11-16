@@ -35,21 +35,21 @@ def divide(info, key1, key2):
     if val1 and val2 and val2!=0:
         return float(val1)/float(val2)
     else:
-        return 'nan'
+        return ''
 
 def multiply(info, key1, key2):
     val1, val2 = extract_data(info, key1, key2)
     if val1 and val2:
         return float(val1)*float(val2)
     else:
-        return 'nan'
+        return ''
 
 def add(info, key1, key2):
     val1, val2 = extract_data(info, key1, key2)
     if val1 and val2:
         return float(val1)+float(val2)
     else:
-        return 'nan'
+        return ''
 
 ELEMENT_ID = Piece_of_info(
     key='id',
@@ -246,14 +246,26 @@ ELEMENT_NB_BASE = Piece_of_info(
     formula=[add, ELEMENT_NB_BASE_R1, ELEMENT_NB_BASE_R2]
 )
 ELEMENT_NB_Q30_R1 = Piece_of_info(
-    key='pc_q30_r1',
+    key='nb_q30_r1',
     text='Nb bases Q30 R1',
     formatter=format_longint
 )
 ELEMENT_NB_Q30_R2 = Piece_of_info(
-    key='pc_q30_r2',
+    key='nb_q30_r2',
     text='Nb bases Q30 R2',
     formatter=format_longint
+)
+ELEMENT_NB_Q30 = Piece_of_info(
+    key='pc_q30',
+    text='Nb bases Q30',
+    formatter=format_longint,
+    formula=[add, ELEMENT_NB_Q30_R1, ELEMENT_NB_Q30_R2]
+)
+ELEMENT_PC_Q30 = Piece_of_info(
+    key='pc_q30',
+    text='%Q30',
+    formatter=format_percent,
+    formula=[divide, ELEMENT_NB_Q30,ELEMENT_NB_BASE]
 )
 ELEMENT_PC_Q30_R1 = Piece_of_info(
     key='pc_q30_r1',
@@ -278,6 +290,12 @@ ELEMENT_PC_READ_IN_LANE = Piece_of_info(
     text='%read in lane',
     formatter=format_percent
 )
+ELEMENT_LANE_COEFF_VARIATION = Piece_of_info(
+    key='lane_coeff_variation',
+    text='CV',
+    formatter=format_float
+)
+
 
 class Info:
     """"""

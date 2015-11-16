@@ -4,6 +4,7 @@ from collections import defaultdict, Counter
 from urllib.parse import urljoin
 import xml.etree.ElementTree as ET
 from pprint import pprint
+import os
 import requests
 from report_generation.config import Configuration
 from report_generation.formaters import format_percent, format_info
@@ -11,8 +12,10 @@ from report_generation.model import Info, ELEMENT_PROJECT, ELEMENT_LIBRARY_INTER
     ELEMENT_NB_READS_PASS_FILTER, ELEMENT_RUN_NAME, ELEMENT_LANE, ELEMENT_BARCODE, ELEMENT_NB_Q30_R1, ELEMENT_NB_BASE, \
     ELEMENT_NB_Q30_R2, ELEMENT_PC_PASS_FILTER, ELEMENT_PC_Q30_R1, ELEMENT_PC_Q30_R2, ELEMENT_PC_READ_IN_LANE, \
     ELEMENT_YIELD, ELEMENT_SAMPLE_EXTERNAL_ID, ELEMENT_SAMPLE_INTERNAL_ID, ELEMENT_ID, ELEMENT_NB_BASE_R1, \
-    ELEMENT_NB_BASE_R2
+    ELEMENT_NB_BASE_R2, ELEMENT_LANE_COEFF_VARIATION, ELEMENT_PC_Q30
 from report_generation.readers.demultiplexing_parsers import parse_demultiplexing_stats, parse_conversion_stats
+from scipy.stats import variation
+from report_generation.readers.sample_sheet import SampleSheet
 
 __author__ = 'tcezard'
 
@@ -25,57 +28,99 @@ def upload_entry(url, id, payload):
     pprint(r.json())
 
 
+
+
 class Demultiplexing_report:
 
-    def __init__(self, run_id, conversion_xml_file, demultiplexing_stats_xml_file):
-        self.run_id=run_id
+    def __init__(self, run_dir, conversion_xml_file):
+        self.run_id = os.path.basename(os.path.abspath(run_dir))
+
         self.headers_barcodes = [ELEMENT_RUN_NAME, ELEMENT_LANE, ELEMENT_PC_PASS_FILTER, ELEMENT_PROJECT,
                                  ELEMENT_LIBRARY_INTERNAL_ID, ELEMENT_SAMPLE_INTERNAL_ID, ELEMENT_BARCODE,
                                  ELEMENT_NB_READS_PASS_FILTER, ELEMENT_PC_READ_IN_LANE, ELEMENT_YIELD,
                                  ELEMENT_PC_Q30_R1, ELEMENT_PC_Q30_R2]
-        self.headers_lane = [ELEMENT_RUN_NAME, ELEMENT_LANE, ELEMENT_PC_PASS_FILTER, ELEMENT_NB_READS_PASS_FILTER, ELEMENT_YIELD,
-                   ELEMENT_PC_Q30_R1, ELEMENT_PC_Q30_R2]
+        self.headers_lane = [ELEMENT_RUN_NAME, ELEMENT_LANE, ELEMENT_PC_PASS_FILTER, ELEMENT_NB_READS_PASS_FILTER,
+                             ELEMENT_YIELD, ELEMENT_PC_Q30, ELEMENT_PC_Q30_R1, ELEMENT_PC_Q30_R2,
+                             ELEMENT_LANE_COEFF_VARIATION]
         self.headers_samples = [ELEMENT_PROJECT, ELEMENT_LIBRARY_INTERNAL_ID, ELEMENT_SAMPLE_INTERNAL_ID, ELEMENT_BARCODE,
                    ELEMENT_NB_READS_PASS_FILTER, ELEMENT_YIELD, ELEMENT_PC_Q30_R1, ELEMENT_PC_Q30_R2]
         self.headers_unexpected = [ELEMENT_RUN_NAME, ELEMENT_LANE, ELEMENT_BARCODE, ELEMENT_NB_READS_PASS_FILTER, ELEMENT_PC_READ_IN_LANE]
 
-
-        self._populate_barcode_info(conversion_xml_file, demultiplexing_stats_xml_file)
+        self._populate_barcode_info_from_SampleSheet(run_dir)
+        if conversion_xml_file:
+            self._populate_barcode_info_from_conversion_file(conversion_xml_file)
         self._aggregate_data_per_library()
         self._aggregate_data_per_lane()
 
     def _aggregate_data_per_lane(self):
         self.lanes_info=defaultdict(Info)
-        for barcode_info in self.barcodes_info:
+        for barcode_info in self.barcodes_info.values():
             lane=barcode_info[ELEMENT_LANE]
             self.lanes_info[lane]+=barcode_info
         #add ELEMENT_PC_READ_IN_LANE to barcode info
-        for barcode_info in self.barcodes_info:
+        for barcode_info in self.barcodes_info.values():
             nb_reads_lane = self.lanes_info[barcode_info[ELEMENT_LANE]][ELEMENT_NB_READS_PASS_FILTER]
-            barcode_info[ELEMENT_PC_READ_IN_LANE]=float(barcode_info[ELEMENT_NB_READS_PASS_FILTER])/float(nb_reads_lane)
-        for barcode_info in self.unexpected_barcode_info:
+            if nb_reads_lane:
+                barcode_info[ELEMENT_PC_READ_IN_LANE]=float(barcode_info[ELEMENT_NB_READS_PASS_FILTER])/float(nb_reads_lane)
+            else:
+                barcode_info[ELEMENT_PC_READ_IN_LANE]=''
+
+        #add ELEMENT_LANE_COEFF_VARIATION to lane_info
+        nb_reads_per_lane = defaultdict(list)
+        for barcode_info in self.barcodes_info.values():
+            if barcode_info[ELEMENT_BARCODE] != 'unknown' and barcode_info[ELEMENT_NB_READS_PASS_FILTER]:
+                nb_reads_per_lane[barcode_info[ELEMENT_LANE]].append(barcode_info[ELEMENT_NB_READS_PASS_FILTER])
+        for lane in self.lanes_info:
+            if nb_reads_per_lane.get(lane):
+                self.lanes_info[lane][ELEMENT_LANE_COEFF_VARIATION] = variation(nb_reads_per_lane.get(lane))
+
+        #add ELEMENT_PC_READ_IN_LANE to barcode info
+        for barcode_info in self.unexpected_barcode_info.values():
             nb_reads_lane = self.lanes_info[barcode_info[ELEMENT_LANE]][ELEMENT_NB_READS_PASS_FILTER]
-            barcode_info[ELEMENT_PC_READ_IN_LANE]=float(barcode_info[ELEMENT_NB_READS_PASS_FILTER])/float(nb_reads_lane)
+            if nb_reads_lane:
+                barcode_info[ELEMENT_PC_READ_IN_LANE]=float(barcode_info[ELEMENT_NB_READS_PASS_FILTER])/float(nb_reads_lane)
+            else:
+                barcode_info[ELEMENT_PC_READ_IN_LANE]=''
 
     def _aggregate_data_per_library(self):
         self.libraries_info=defaultdict(Info)
-        for barcode_info in self.barcodes_info:
+        for barcode_info in self.barcodes_info.values():
             library=barcode_info[ELEMENT_LIBRARY_INTERNAL_ID]
             self.libraries_info[library]+=barcode_info
 
-    def _populate_barcode_info(self, conversion_xml_file, demultiplexing_stats_xml_file):
+    def _populate_barcode_info_from_SampleSheet(self, run_dir):
+        self.barcodes_info={}
+        samplesheet = SampleSheet(run_dir)
+        for project_id, proj_obj in samplesheet.sample_projects.items():
+            for sample_id_obj in proj_obj.sample_ids.values():
+                for sample in sample_id_obj.samples:
+                    for lane in sample.lane.split('+'):
+                        barcode_info = Info()
+                        barcode_info[ELEMENT_BARCODE]=sample.barcode
+                        barcode_info[ELEMENT_ID] = '%s_%s_%s'%(self.run_id, lane, sample.barcode)
+                        barcode_info[ELEMENT_RUN_NAME]=self.run_id
+                        barcode_info[ELEMENT_PROJECT]=project_id
+                        barcode_info[ELEMENT_SAMPLE_INTERNAL_ID]=sample.sample_id
+                        barcode_info[ELEMENT_LIBRARY_INTERNAL_ID]=sample.sample_name
+                        barcode_info[ELEMENT_LANE]=lane
+                        self.barcodes_info[barcode_info[ELEMENT_ID]]=(barcode_info)
+
+                        barcode_info = Info()
+                        barcode_info[ELEMENT_BARCODE]='unknown'
+                        barcode_info[ELEMENT_ID] = '%s_%s_%s'%(self.run_id, lane, 'unknown')
+                        barcode_info[ELEMENT_RUN_NAME]=self.run_id
+                        barcode_info[ELEMENT_PROJECT] = 'default'
+                        barcode_info[ELEMENT_SAMPLE_INTERNAL_ID]='Undetermined'
+                        barcode_info[ELEMENT_LIBRARY_INTERNAL_ID]='Undetermined'
+                        barcode_info[ELEMENT_LANE]=lane
+                        self.barcodes_info[barcode_info[ELEMENT_ID]]=(barcode_info)
+        self.unexpected_barcode_info={}
+
+    def _populate_barcode_info_from_conversion_file(self, conversion_xml_file):
         all_barcodes_per_lanes, top_unknown_barcodes_per_lanes = parse_conversion_stats(conversion_xml_file)
-        self.barcodes_info=[]
-        barcodes_info_per_lanes=defaultdict(dict)
         for project, library, lane, barcode, clust_count, clust_count_pf, nb_bases,\
             nb_bases_r1q30, nb_bases_r2q30, in all_barcodes_per_lanes:
-            barcode_info = Info()
-            barcode_info[ELEMENT_ID] = '%s_%s_%s'%(self.run_id, lane, barcode)
-            barcode_info[ELEMENT_RUN_NAME]=self.run_id
-            barcode_info[ELEMENT_PROJECT]=project
-            barcode_info[ELEMENT_LIBRARY_INTERNAL_ID]=library
-            barcode_info[ELEMENT_LANE]=lane
-            barcode_info[ELEMENT_BARCODE]=barcode
+            barcode_info = self.barcodes_info.get('%s_%s_%s'%(self.run_id, lane, barcode))
             barcode_info[ELEMENT_NB_READS_SEQUENCED]=int(clust_count)
             barcode_info[ELEMENT_NB_READS_PASS_FILTER]=int(clust_count_pf)
             #For the paired end reads
@@ -83,9 +128,7 @@ class Demultiplexing_report:
             barcode_info[ELEMENT_NB_BASE_R2]=int(nb_bases)
             barcode_info[ELEMENT_NB_Q30_R1]=int(nb_bases_r1q30)
             barcode_info[ELEMENT_NB_Q30_R2]=int(nb_bases_r2q30)
-            self.barcodes_info.append(barcode_info)
-            barcodes_info_per_lanes[lane][barcode]=barcode_info
-        self.unexpected_barcode_info=[]
+
         for lane, barcode, clust_count in top_unknown_barcodes_per_lanes:
             barcode_info = Info()
             barcode_info[ELEMENT_ID] = '%s_%s_%s'%(self.run_id, lane, barcode)
@@ -93,11 +136,7 @@ class Demultiplexing_report:
             barcode_info[ELEMENT_LANE]=lane
             barcode_info[ELEMENT_BARCODE]=barcode
             barcode_info[ELEMENT_NB_READS_PASS_FILTER]=int(clust_count)
-            self.unexpected_barcode_info.append(barcode_info)
-        for project, sample_id, barcode, lane, clust_count in parse_demultiplexing_stats(demultiplexing_stats_xml_file):
-            barcode_info = barcodes_info_per_lanes.get(lane).get(barcode)
-            if barcode_info:
-                barcode_info[ELEMENT_SAMPLE_INTERNAL_ID] = sample_id
+            self.unexpected_barcode_info[barcode_info[ELEMENT_ID]]=(barcode_info)
 
     def _generate_lane_summary_table(self):
         return format_info([self.lanes_info[lane] for lane in sorted(self.lanes_info)], self.headers_lane)
@@ -106,7 +145,7 @@ class Demultiplexing_report:
         return format_info([self.libraries_info[library] for library in sorted(self.libraries_info)], self.headers_samples)
 
     def _generate_sample_per_lane_table(self, lane):
-        return format_info([barcode for barcode in self.barcodes_info if barcode[ELEMENT_LANE] == lane], self.headers_barcodes)
+        return format_info([barcode for barcode in self.barcodes_info.values() if barcode[ELEMENT_LANE] == lane], self.headers_barcodes)
 
     def _generate_demultiplexing_tab(self):
         tabbed_table=[]
@@ -121,7 +160,7 @@ class Demultiplexing_report:
         return tabbed_table
 
     def _generate_unexpected_per_lane_table(self, lane):
-        return format_info([barcode for barcode in self.unexpected_barcode_info if barcode[ELEMENT_LANE] == lane], self.headers_unexpected)
+        return format_info([barcode for barcode in self.unexpected_barcode_info.values() if barcode[ELEMENT_LANE] == lane], self.headers_unexpected)
 
     def _generate_unexpected_tab(self):
         tabbed_table=[]
@@ -161,14 +200,14 @@ class Demultiplexing_report:
         #Send run elements
         headers=[ELEMENT_ID]
         headers.extend(self.headers_barcodes)
-        array_json = format_info(self.barcodes_info, self.headers_barcodes, style='array')
+        array_json = format_info(self.barcodes_info.values(), self.headers_barcodes, style='array')
         url=cfg.query('rest_api','url') + 'run_elements/'
         for payload in array_json:
             upload_entry(url,payload.get('id'), payload)
         headers=[ELEMENT_ID]
         headers.extend(self.headers_barcodes)
         #Send unexpected barcodes
-        array_json = format_info(self.unexpected_barcode_info, self.headers_unexpected, style='array')
+        array_json = format_info(self.unexpected_barcode_info.values(), self.headers_unexpected, style='array')
         url=cfg.query('rest_api','url') + 'unexpected_barcodes/'
         for payload in array_json:
             upload_entry(url,payload.get('id'), payload)
@@ -182,7 +221,7 @@ def main():
     #Setup options
     argparser=_prepare_argparser()
     args = argparser.parse_args()
-    r = Demultiplexing_report(args.run_id, args.conversion_xml, args.demultiplexing_xml)
+    r = Demultiplexing_report(args.run_dir, args.conversion_xml)
     if args.send_data:
         r.send_data()
     elif args.style == 'wiki':
@@ -198,8 +237,7 @@ def _prepare_argparser():
 
     argparser = ArgumentParser(description=description)
     argparser.add_argument("-c", "--conversion_xml-file", dest="conversion_xml", type=str, help="The ConversionStats.xml to parse.")
-    argparser.add_argument("-d", "--demultiplexing_xml-file", dest="demultiplexing_xml", type=str, help="The DemultiplexingStats.xml to parse.")
-    argparser.add_argument("-r", "--run_id", dest="run_id", type=str, help="The id of the Run.")
+    argparser.add_argument("-r", "--run_dir", dest="run_dir", type=str, help="The directory containing the SampleSheet.csv of the Run.")
     argparser.add_argument("--style", dest="style", type=str, help="The style of the report.", default='wiki')
     argparser.add_argument("--send_data", dest="send_data", action='store_true', default=False, help="send data to the reporting app instead of printing the report.")
 
