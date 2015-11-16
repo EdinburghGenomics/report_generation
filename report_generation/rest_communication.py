@@ -1,5 +1,6 @@
 from urllib.parse import urljoin
 import requests
+from pprint import pprint
 
 
 def get_document(url, **kwargs):
@@ -12,10 +13,11 @@ def get_document(url, **kwargs):
 
 
 def post_entry(url, payload):
-    """Upload Assuming we know the id of this entry"""
+    """Upload to the collection."""
     r = requests.request('POST', url, json=payload)
     if r.status_code != 200:
         print('POST', r.status_code, r.reason, url)
+        pprint(r.json())
         return False
     return True
 
@@ -32,7 +34,7 @@ def put_entry(url, id, payload):
 
 
 def patch_entry(url, payload, **kwargs):
-    """Upload Assuming we know the id of this entry"""
+    """Upload Assuming we can get the id of this entry from kwargs"""
     doc = get_document(url.rstrip('/'), **kwargs)
     url = urljoin(url, doc.get('_id'))
     headers={'If-Match':doc.get('_etag')}
