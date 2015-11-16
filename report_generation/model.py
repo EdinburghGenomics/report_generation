@@ -51,6 +51,14 @@ def add(info, key1, key2):
     else:
         return ''
 
+def substract(info, key1, key2):
+    val1, val2 = extract_data(info, key1, key2)
+    if val1 and val2:
+        return float(val1)-float(val2)
+    else:
+        return ''
+
+
 ELEMENT_ID = Piece_of_info(
     key='id',
     text=None,
@@ -151,10 +159,6 @@ ELEMENT_LIBRARY_STDDEV_INSERT_SIZE = Piece_of_info(
     key='Std dev Insert Size',
     formatter=format_longint
 )
-ELEMENT_MEAN_COVERAGE = Piece_of_info(
-    key='Mean coverage',
-    formatter=format_float
-)
 ELEMENT_MEDIAN_COVERAGE = Piece_of_info(
     key='median_coverage',
     text='Median coverage',
@@ -244,6 +248,26 @@ ELEMENT_NB_BASE = Piece_of_info(
     key='Nb bases',
     formatter=format_longint,
     formula=[add, ELEMENT_NB_BASE_R1, ELEMENT_NB_BASE_R2]
+)
+ELEMENT_NB_MAPPING_BASE = Piece_of_info(
+    key='Nb mapping bases',
+    formatter=format_longint,
+    formula=[multiply, ELEMENT_NB_BASE, ELEMENT_PC_MAPPED_READS]
+)
+ELEMENT_NB_DUPLICATE_BASE = Piece_of_info(
+    key='Nb duplicate bases',
+    formatter=format_longint,
+    formula=[multiply, ELEMENT_NB_MAPPING_BASE, ELEMENT_PC_DUPLICATE_READS]
+)
+ELEMENT_NB_UNIQUE_BASE = Piece_of_info(
+    key='Nb unique bases',
+    formatter=format_longint,
+    formula=[substract, ELEMENT_NB_MAPPING_BASE, ELEMENT_NB_DUPLICATE_BASE]
+)
+ELEMENT_MEAN_COVERAGE = Piece_of_info(
+    key='Mean coverage',
+    formatter=format_float,
+    formula=[divide, ELEMENT_NB_UNIQUE_BASE, 3217346917]
 )
 ELEMENT_NB_Q30_R1 = Piece_of_info(
     key='nb_q30_r1',
