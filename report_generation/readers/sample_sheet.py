@@ -35,6 +35,8 @@ class SampleSheet():
     def __init__(self, data_dir):
         self.sample_projects = {}  # {name: samples} {str: Sample}
         self.filename = os.path.join(data_dir, 'SampleSheet_analysis_driver.csv')
+        if not os.path.exists(self.filename):
+            self.filename = os.path.join(data_dir, 'SampleSheet.csv')
         self._populate()
 
     def check_barcodes(self):
