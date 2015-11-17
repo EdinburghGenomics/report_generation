@@ -7,7 +7,7 @@ from report_generation.formaters import format_percent, format_info
 from report_generation.model import Info, ELEMENT_PROJECT, ELEMENT_LIBRARY_INTERNAL_ID, ELEMENT_NB_READS_SEQUENCED, \
     ELEMENT_NB_READS_PASS_FILTER, ELEMENT_RUN_NAME, ELEMENT_LANE, ELEMENT_BARCODE, ELEMENT_NB_Q30_R1, ELEMENT_NB_BASE, \
     ELEMENT_NB_Q30_R2, ELEMENT_PC_PASS_FILTER, ELEMENT_PC_Q30_R1, ELEMENT_PC_Q30_R2, ELEMENT_PC_READ_IN_LANE, \
-    ELEMENT_YIELD, ELEMENT_SAMPLE_INTERNAL_ID, ELEMENT_ID, ELEMENT_NB_BASE_R1, \
+    ELEMENT_YIELD, ELEMENT_SAMPLE_INTERNAL_ID, ELEMENT_NB_BASE_R1, \
     ELEMENT_NB_BASE_R2, ELEMENT_LANE_COEFF_VARIATION, ELEMENT_PC_Q30, ELEMENT_RUN_ELEMENT_ID
 from report_generation.readers.demultiplexing_parsers import parse_conversion_stats
 from scipy.stats import variation
@@ -84,23 +84,23 @@ class Demultiplexing_report:
                     for lane in sample.lane.split('+'):
                         barcode_info = Info()
                         barcode_info[ELEMENT_BARCODE]=sample.barcode
-                        barcode_info[ELEMENT_ID] = '%s_%s_%s'%(self.run_id, lane, sample.barcode)
+                        barcode_info[ELEMENT_RUN_ELEMENT_ID] = '%s_%s_%s'%(self.run_id, lane, sample.barcode)
                         barcode_info[ELEMENT_RUN_NAME]=self.run_id
                         barcode_info[ELEMENT_PROJECT]=project_id
                         barcode_info[ELEMENT_SAMPLE_INTERNAL_ID]=sample.sample_id
                         barcode_info[ELEMENT_LIBRARY_INTERNAL_ID]=sample.sample_name
                         barcode_info[ELEMENT_LANE]=lane
-                        self.barcodes_info[barcode_info[ELEMENT_ID]]=(barcode_info)
+                        self.barcodes_info[barcode_info[ELEMENT_RUN_ELEMENT_ID]]=(barcode_info)
 
                         barcode_info = Info()
                         barcode_info[ELEMENT_BARCODE]='unknown'
-                        barcode_info[ELEMENT_ID] = '%s_%s_%s'%(self.run_id, lane, 'unknown')
+                        barcode_info[ELEMENT_RUN_ELEMENT_ID] = '%s_%s_%s'%(self.run_id, lane, 'unknown')
                         barcode_info[ELEMENT_RUN_NAME]=self.run_id
                         barcode_info[ELEMENT_PROJECT] = 'default'
                         barcode_info[ELEMENT_SAMPLE_INTERNAL_ID]='Undetermined'
                         barcode_info[ELEMENT_LIBRARY_INTERNAL_ID]='Undetermined'
                         barcode_info[ELEMENT_LANE]=lane
-                        self.barcodes_info[barcode_info[ELEMENT_ID]]=(barcode_info)
+                        self.barcodes_info[barcode_info[ELEMENT_RUN_ELEMENT_ID]]=(barcode_info)
         self.unexpected_barcode_info={}
 
     def _populate_barcode_info_from_conversion_file(self, conversion_xml_file):
@@ -118,12 +118,12 @@ class Demultiplexing_report:
 
         for lane, barcode, clust_count in top_unknown_barcodes_per_lanes:
             barcode_info = Info()
-            barcode_info[ELEMENT_ID] = '%s_%s_%s'%(self.run_id, lane, barcode)
+            barcode_info[ELEMENT_RUN_ELEMENT_ID] = '%s_%s_%s'%(self.run_id, lane, barcode)
             barcode_info[ELEMENT_RUN_NAME]=self.run_id
             barcode_info[ELEMENT_LANE]=lane
             barcode_info[ELEMENT_BARCODE]=barcode
             barcode_info[ELEMENT_NB_READS_PASS_FILTER]=int(clust_count)
-            self.unexpected_barcode_info[barcode_info[ELEMENT_ID]]=(barcode_info)
+            self.unexpected_barcode_info[barcode_info[ELEMENT_RUN_ELEMENT_ID]]=(barcode_info)
 
     def _generate_lane_summary_table(self):
         return format_info([self.lanes_info[lane] for lane in sorted(self.lanes_info)], self.headers_lane)
@@ -200,13 +200,6 @@ class Demultiplexing_report:
                 id = payload.pop(ELEMENT_RUN_ELEMENT_ID.key)
                 patch_entry(url, payload, **{ELEMENT_RUN_ELEMENT_ID.key:id})
 
-        array_json = format_info(self.libraries_info.values(), headers_samples, style='array')
-        url=cfg.query('rest_api','url') + 'samples/'
-        for payload in array_json:
-            if not post_entry(url, payload):
-                id = payload.pop(ELEMENT_LIBRARY_INTERNAL_ID.key)
-                patch_entry(url, payload, **{ELEMENT_LIBRARY_INTERNAL_ID.key:id})
-
         #Send unexpected barcodes
         array_json = format_info(self.unexpected_barcode_info.values(), headers_unexpected, style='array')
         url=cfg.query('rest_api','url') + 'unexpected_barcodes/'
@@ -214,6 +207,14 @@ class Demultiplexing_report:
             if not post_entry(url, payload):
                 id = payload.pop(ELEMENT_RUN_ELEMENT_ID.key)
                 patch_entry(url, payload, **{ELEMENT_RUN_ELEMENT_ID.key:id})
+
+        #Send samples information
+        array_json = format_info(self.libraries_info.values(), headers_samples, style='array')
+        url=cfg.query('rest_api','url') + 'samples/'
+        for payload in array_json:
+            lib_id = {ELEMENT_LIBRARY_INTERNAL_ID.key:payload.get(ELEMENT_LIBRARY_INTERNAL_ID.key)}
+            if not post_entry(url, payload):
+                patch_entry(url, payload, **lib_id)
 
 
 

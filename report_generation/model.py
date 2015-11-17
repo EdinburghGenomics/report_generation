@@ -320,6 +320,23 @@ ELEMENT_LANE_COEFF_VARIATION = Piece_of_info(
     formatter=format_float
 )
 
+ALL_PIECES=[
+    ELEMENT_RUN_ELEMENT_ID, ELEMENT_PROJECT, ELEMENT_LIBRARY_INTERNAL_ID, ELEMENT_SAMPLE_INTERNAL_ID,
+    ELEMENT_SAMPLE_EXTERNAL_ID, ELEMENT_NB_READS_SEQUENCED, ELEMENT_NB_READS_PASS_FILTER,
+    ELEMENT_NB_READS_ADAPTER_TRIMMED, ELEMENT_PC_PASS_FILTER, ELEMENT_NB_MAPPED_READS, ELEMENT_PC_MAPPED_READS,
+    ELEMENT_NB_SEC_MAPPED_READS, ELEMENT_PC_SEC_MAPPED_READS, ELEMENT_NB_DUPLICATE_READS,
+    ELEMENT_PC_DUPLICATE_READS, ELEMENT_NB_PROPERLY_MAPPED, ELEMENT_PC_PROPERLY_MAPPED,
+    ELEMENT_MEDIAN_INSERT_SIZE, ELEMENT_LIBRARY_MEAN_INSERT_SIZE, ELEMENT_LIBRARY_STDDEV_INSERT_SIZE,
+    ELEMENT_MEDIAN_COVERAGE, ELEMENT_NB_BASES_CALLABLE, ELEMENT_PC_BASES_CALLABLE, ELEMENT_NB_BASES_NO_COVERAGE,
+    ELEMENT_NB_BASES_LOW_COVERAGE, ELEMENT_NB_BASES_EXCESS_COVERAGE, ELEMENT_NB_BASES_POOR_QUALITY,
+    ELEMENT_NB_BASES_10X, ELEMENT_PC_BASES_10X, ELEMENT_NB_BASES_30X, ELEMENT_PC_BASES_30X,
+    ELEMENT_NB_SNP_CONCORDANT, ELEMENT_PC_SNP_CONCORDANT, ELEMENT_NB_INDEL_CONCORDANT,
+    ELEMENT_PC_INDEL_CONCORDANT, ELEMENT_RUN_NAME, ELEMENT_LANE, ELEMENT_BARCODE, ELEMENT_NB_BASE_R1,
+    ELEMENT_NB_BASE_R2, ELEMENT_NB_BASE, ELEMENT_NB_MAPPING_BASE, ELEMENT_NB_DUPLICATE_BASE,
+    ELEMENT_NB_UNIQUE_BASE, ELEMENT_MEAN_COVERAGE, ELEMENT_NB_Q30_R1, ELEMENT_NB_Q30_R2,
+    ELEMENT_NB_Q30, ELEMENT_PC_Q30, ELEMENT_PC_Q30_R1, ELEMENT_PC_Q30_R2, ELEMENT_YIELD,
+    ELEMENT_PC_READ_IN_LANE, ELEMENT_LANE_COEFF_VARIATION
+]
 
 class Info:
     """"""
@@ -355,7 +372,9 @@ class Info:
     def __iter__(self):
         return self._info.__iter__()
 
-    def format_line(self, keys, style=None):
+    def format_line(self, keys=None, style=None):
+        if keys is None:
+            keys=self._info.keys()
         out = []
         for key in keys:
             value = self.get(key)
@@ -365,7 +384,7 @@ class Info:
         return out
 
 
-    def format_line_wiki(self, keys):
+    def format_line_wiki(self, keys=None):
         return '| %s |'%(' | '.join(self.format_line(keys, style="wiki")))
 
     def format_entry_dict(self, headers, style):
@@ -381,7 +400,7 @@ class Info:
                     new_info[key] = self[key]
                 else:
                     join_char = '-'
-                    tmp = set(self[key].split(join_char)).union(set(other[key].split(join_char)))
+                    tmp = set(str(self[key]).split(join_char)).union(set(str(other[key]).split(join_char)))
                     new_info[key] = join_char.join(tmp)
             elif key in other:
                 new_info[key]=other[key]

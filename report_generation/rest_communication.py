@@ -1,15 +1,19 @@
 from urllib.parse import urljoin
 import requests
 from pprint import pprint
+from report_generation.model import ALL_PIECES, Info
 
 
-def get_document(url, **kwargs):
+def get_documents(url, **kwargs):
     param = []
     for key in kwargs:
         param.append('"%s":"%s"'%(key,kwargs.get(key)))
     if param: url = url + '?where={%s}'%','.join(param)
     r = requests.request('GET', url)
-    return r.json().get('data')[0]
+    return r.json().get('data')
+
+def get_document(url, **kwargs):
+    return get_documents(url, **kwargs)[0]
 
 
 def post_entry(url, payload):
@@ -43,3 +47,14 @@ def patch_entry(url, payload, **kwargs):
         print('PATCH', r.status_code, r.reason, url)
         return False
     return True
+
+def json_to_info(json):
+    key_to_piece = {}
+    for piece in ALL_PIECES:
+        key_to_piece[piece.key] = piece
+    info = Info()
+
+    for key in json:
+        if key in key_to_piece:
+            info[key_to_piece.get(key)]=json.get(key)
+    return info
