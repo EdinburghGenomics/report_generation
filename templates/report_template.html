@@ -13,7 +13,12 @@
     {% endblock %}
 </head>
 <body>
-    <img height="60", align="middle", src="http://caenorhabditis.bio.ed.ac.uk/uploads/Image/Edinburghgenomics.png">
+    <table>
+        <td><img height="60", align="middle", src="http://caenorhabditis.bio.ed.ac.uk/uploads/Image/Edinburghgenomics.png"></td>
+        <td> <h1> Project {{ project_name }} report </h1> </td>
+        <td>  </td>
+    </table>
+    <br>
     <div id="intro">{% block intro %}{% endblock %}</div>
     <div id="sample_qc">{% block sample_qc %}{% endblock %}</div>
     <div id="library_prep">{% block library_prep %}{% endblock %}</div>

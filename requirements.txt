@@ -6,5 +6,6 @@ requests==2.8.1
 numpy
 scipy
 xhtml2pdf
+jinja
 #Take the latest version of the genologics package from github
 git+https://github.com/EdinburghGenomics/genologics.git

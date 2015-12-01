@@ -4,7 +4,7 @@ import csv
 from cStringIO import StringIO
 from genologics.lims import Lims
 import re
-from flask import logging
+import logging
 import sys
 import os
 from xhtml2pdf import pisa
@@ -41,7 +41,7 @@ class ProjectReport:
         self.project_name = project_name
         self.project_path = project_path
         self.lims=Lims(**cfg.get('clarity'))
-        self.params = {}
+        self.params = {'project_name':project_name}
         self.results = {}
         self.fill_sample_names_from_lims()
         self.samples_delivered = self.read_metrics_csv(os.path.join(self.project_path, 'metrics_summary.csv'))
@@ -117,7 +117,7 @@ class ProjectReport:
                 self.parse_project_summary_yaml(summary_yaml)
 
         self.results['project_name']=['Project name:',self.project_name]
-        self.results['project_size']=['Total folder size:','%.2fG'%(project_size/1000000000)]
+        self.results['project_size']=['Total folder size:','%.2fTb'%(project_size/1000000000000.0)]
         self.results['nb_sample']=['Number of sample:', len(self.samples)]
         self.results['nb_sample_delivered']=['Number of sample delivered:',len(self.samples_delivered)]
         yields = [float(self.samples_delivered[s]['Yield']) for s in self.samples_delivered]

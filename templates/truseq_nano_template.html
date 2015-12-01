@@ -2,37 +2,59 @@
 
 
 {% block intro %}
-<h1>Illumina SeqLab TruSeq Nano Method Summary</h1>
-Edinburgh Genomics: Clinical Genomics utilises Illumina SeqLab which integrates Illumina TruSeq Nano library preparation, cluster generation on Illumina cBot2’s and sequencing using Illumina HiSeq X’s with Genologics Clarity LIMs X Edition and Hamilton Microlab STAR integrative automation.
+<h2>Illumina SeqLab TruSeq Nano Method Summary</h2>
+Edinburgh Genomics: Clinical Genomics utilises Illumina SeqLab which integrates Illumina TruSeq Nano library
+preparation, cluster generation on Illumina cBot2’s and sequencing using Illumina HiSeq X’s with Genologics
+Clarity LIMs X Edition and Hamilton Microlab STAR integrative automation.
 {% endblock %}
 
 {% block sample_qc %}
 <h3>Sample QC</h3>
-Genomic DNA (gDNA) samples are evaluated for quantity and quality using an Advanced Analytical Technologies, Fragment Analyzer and the DNF-487 Standard Sensitivity Genomic DNA Analysis Kit.  The Advanced Analytical Technologies, ProSize 2.0 software will provide a quantification value and a quality (integrity) score for each gDNA sample.  Genomic DNA samples found to have a quality score <7 and have little or no high molecular weight material will fail Sample QC and replacement samples will be requested.  Based on the quantification results, gDNA samples will be pre-normalised to fall within the acceptable range of the Illumina SeqLab TruSeq Nano library preparation method as undertaken by the Hamilton MicroLab STAR.
+Genomic DNA (gDNA) samples are evaluated for quantity and quality using an Advanced Analytical Technologies, Fragment
+Analyzer and the DNF-487 Standard Sensitivity Genomic DNA Analysis Kit.  The Advanced Analytical Technologies,
+ProSize 2.0 software will provide a quantification value and a quality (integrity) score for each gDNA sample.
+Genomic DNA samples found to have a quality score <7 and have little or no high molecular weight material will fail
+Sample QC and replacement samples will be requested.  Based on the quantification results, gDNA samples will be
+pre-normalised to fall within the acceptable range of the Illumina SeqLab TruSeq Nano library preparation method
+as undertaken by the Hamilton MicroLab STAR.
 {% endblock %}
 
 {% block library_prep %}
 <h3>Library Preparation</h3>
-Next Generation sequencing libraries are prepared using Illumina SeqLab specific TruSeq Nano High Throughput library preparation kits in conjunction with the Hamilton MicroLab STAR and Clarity LIMs X Edition.  In brief, the gDNA samples are normalised to the concentration and volume required for the Illumina TruSeq Nano library preparation kits, sheared to 450bp mean insert size using Covaris LE220, blunt ended, A-tailed, size selected, TruSeq adapters ligated and enriched using 8 cycles of PCR amplification.
+Next Generation sequencing libraries are prepared using Illumina SeqLab specific TruSeq Nano High Throughput library
+preparation kits in conjunction with the Hamilton MicroLab STAR and Clarity LIMs X Edition.  In brief, the gDNA samples
+are normalised to the concentration and volume required for the Illumina TruSeq Nano library preparation kits, sheared
+to 450bp mean insert size using Covaris LE220, blunt ended, A-tailed, size selected, TruSeq adapters ligated and
+enriched using 8 cycles of PCR amplification.
 {% endblock %}
 
 {% block library_qc %}
 <h3>Library QC</h3>
-The libraries are evaluated for mean peak size and quantity using the Caliper GX Touch, HT DNA 1K/12K/Hi SENS LabChip and HT DNA HS Reagent Kit.  The libraries are normalised to 5nM using the GX data and the actual concentration was established using a Roche LightCycler 480 and a Kapa Illumina Library Quantification kit and Standards.
+The libraries are evaluated for mean peak size and quantity using the Caliper GX Touch, HT DNA 1K/12K/Hi SENS LabChip
+and HT DNA HS Reagent Kit.  The libraries are normalised to 5nM using the GX data and the actual concentration was
+established using a Roche LightCycler 480 and a Kapa Illumina Library Quantification kit and Standards.
 {% endblock %}
 
 {% block sequencing %}
 <h3>Sequencing</h3>
-The libraries are normalised, denatured and pooled in eights for clustering and sequencing using a Hamilton MicroLab STAR with Genologics Clarity LIMs X Edition.  Libraries are clustered onto HiSeq X Flow cell v2.5 on cBot2s and the clustered flow cell is transferred to a HiSeq X for sequencing using a HiSeq X Ten Reagent kit v2.5.
+The libraries are normalised, denatured and pooled in eights for clustering and sequencing using a Hamilton MicroLab
+STAR with Genologics Clarity LIMs X Edition.  Libraries are clustered onto HiSeq X Flow cell v2.5 on cBot2s and the
+clustered flow cell is transferred to a HiSeq X for sequencing using a HiSeq X Ten Reagent kit v2.5.
 {% endblock %}
 
 {% block bioinformatics_analysis %}
 <h3>Bioinformatics analysis</h3>
-The demultiplexing is performed using bcl2fastq ({{bcl2fastq_version}}) allowing 1 mismatch when assigning reads to a barcodes. Adapters (Read1: {{adapter1}}, Read2: {{adapter2}}) are trimmed during the demultiplexing process. bcbio-nextgen ({{bcbio_version}}) is used to perform the alignment, bam file preparation and variant detection. It uses bwa mem ({{bwa_version}}) to align the raw reads to the {{genome_name}} ({{genome_version}}) genome, then samblaster ({{samblaster_version}}) to mark the duplicated fragments and the Genome Analysis Toolkit ({{gatk_version}}) for the indel realignment and base recalibration. The genotype likelihoods are calculated using Genome Analysis Toolkit ({{gatk_version}}) HaplotypeCaller creating a final gvcf file.
+The demultiplexing is performed using bcl2fastq ({{bcl2fastq_version}}) allowing 1 mismatch when assigning reads to a
+barcodes. Adapters (Read1: {{adapter1}}, Read2: {{adapter2}}) are trimmed during the demultiplexing process.
+bcbio-nextgen ({{bcbio_version}}) is used to perform the alignment, bam file preparation and variant detection.
+It uses bwa mem ({{bwa_version}}) to align the raw reads to the {{genome_name}} ({{genome_version}}) genome, then
+samblaster ({{samblaster_version}}) to mark the duplicated fragments and the Genome Analysis Toolkit ({{gatk_version}})
+for the indel realignment and base recalibration. The genotype likelihoods are calculated using Genome Analysis Toolkit
+({{gatk_version}}) HaplotypeCaller creating a final gvcf file.
 {% endblock %}
 
 {% block results %}
-<h1>Results</h1>
+<h2>Results</h2>
 <table id="results">
     {% for header in results_order %}
     <tr>
@@ -45,7 +67,7 @@ The demultiplexing is performed using bcl2fastq ({{bcl2fastq_version}}) allowing
 
 
 {% block formats %}
-<h1>Files</h1>
+<h2>Files</h2>
 <table id="formats">
     <tr>
         <th align="left", width="50"> Format</th>
@@ -54,17 +76,24 @@ The demultiplexing is performed using bcl2fastq ({{bcl2fastq_version}}) allowing
     </tr>
     <tr>
         <td align="left"> Fastq</td>
-        <td align="left"> Files ending in fastq.gz are in gzipped Sanger fastq format and it contains the raw data after demultiplexing. Each sample has two files; the file ending in R1.fastq.gz contains the first reads in the pair, the file ending in R2.fastq.gz contains the second reads in the pair. </td>
+        <td align="left"> Files ending in fastq.gz are in gzipped Sanger fastq format and it contains the raw data
+            after demultiplexing. Each sample has two files; the file ending in R1.fastq.gz contains the first reads
+            in the pair, the file ending in R2.fastq.gz contains the second reads in the pair. </td>
         <td align="left">  <a href="https://en.wikipedia.org/wiki/FASTQ_format">fastq format</a> </td>
     </tr>
     <tr>
         <td align="left"> Bam </td>
-        <td align="left"> Files ending in .bam are in bam format and it contains the reads aligned to the genome and ready for variant calling. Each sample has one file; There are also a file ending in .bam.bai which is the bam index. It allow some program fast access to any part of the bam file.</td>
+        <td align="left"> Files ending in .bam are in bam format and it contains the reads aligned to the genome and
+            ready for variant calling. Each sample has one file; There are also a file ending in .bam.bai which is the
+            bam index. It allow some program fast access to any part of the bam file.</td>
         <td align="left">  <a href="https://samtools.github.io/hts-specs/SAMv1.pdf">Sam/Bam specification</a> </td>
     </tr>
         <tr>
         <td align="left"> VCF </td>
-        <td align="left"> Files ending in .vcf.gz are gzipped vcf files and they contains the variant dectected between the sample and the reference genome. There is a file ending in g.vcf.gz which contains genotype likelyhood accros the genome regardless of the presence of a variant. Files ending in vcf.gz.tbi are indexes allowing fast access to parts of the vcf files.</td>
+        <td align="left"> Files ending in .vcf.gz are gzipped vcf files and they contains the variant dectected between
+            the sample and the reference genome. There is a file ending in g.vcf.gz which contains genotype likelyhood
+            accros the genome regardless of the presence of a variant. Files ending in vcf.gz.tbi are indexes allowing
+            fast access to parts of the vcf files.</td>
         <td align="left">  <a href="https://samtools.github.io/hts-specs/VCFv4.2.pdf">VCF specification</a> </td>
     </tr>
 </table>
