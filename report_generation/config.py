@@ -26,17 +26,15 @@ class Configuration:
         except KeyError:
             return return_default
 
-    def query(self, *parts, top_level=None):
+    def query(self, *parts):
         """
         Drill down into a config, e.g. cfg.query('logging', 'handlers', 'a_handler', 'level')
         :return: The relevant item if it exists in the config, else None.
         """
-        if top_level is None:
-            top_level = self.content
         item = None
 
         for p in parts:
-            item = top_level.get(p)
+            item = self.content.get(p)
             if item:
                 top_level = item
             else:

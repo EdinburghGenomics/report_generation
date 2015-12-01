@@ -1,0 +1,39 @@
+date: '2015-11-19 11:08:52.007970'
+upload: /scratch/U008/edingen/jobs/samples/10099AT0002/sample_10099AT0002-merged/final
+bcbio_system: ''
+samples:
+- description: MCF7_CUL2
+  dirs:
+    fastq: null
+    galaxy: /home/U008/edingen/Applications/bcbio/bcbio-0.9.4/galaxy
+    work: /scratch/U008/edingen/jobs/samples/10099AT0002/sample_10099AT0002-merged/work
+  genome_build: hg38
+  genome_resources:
+    aliases:
+      ensembl: homo_sapiens_vep_81_GRCh38
+      human: true
+      snpeff: GRCh38.78
+    variation:
+      dbsnp: /home/U008/edingen/Applications/bcbio/bcbio-0.9.4/genomes/Hsapiens/hg38/variation/dbsnp-144.vcf.gz
+      lcr: /home/U008/edingen/Applications/bcbio/bcbio-0.9.4/genomes/Hsapiens/hg38/variation/LCR.bed.gz
+      train_1000g: /home/U008/edingen/Applications/bcbio/bcbio-0.9.4/genomes/Hsapiens/hg38/variation/1000G_phase1.snps.high_confidence.vcf.gz
+      train_hapmap: /home/U008/edingen/Applications/bcbio/bcbio-0.9.4/genomes/Hsapiens/hg38/variation/hapmap_3.3.vcf.gz
+      train_indels: /home/U008/edingen/Applications/bcbio/bcbio-0.9.4/genomes/Hsapiens/hg38/variation/Mills_and_1000G_gold_standard.indels.vcf.gz
+      train_omni: /home/U008/edingen/Applications/bcbio/bcbio-0.9.4/genomes/Hsapiens/hg38/variation/1000G_omni2.5.vcf.gz
+    version: 6
+  metadata:
+    batch: MCF7_CUL2-joint
+  sam_ref: /home/U008/edingen/Applications/bcbio/bcbio-0.9.4/genomes/Hsapiens/hg38/seq/hg38.fa
+  summary:
+    metrics:
+      '%GC': '41'
+      Duplicates: '229654162'
+      Duplicates pct: 16.9938%
+      Mapped reads: '1316142079'
+      Mapped reads pct: 97.3909%
+      Median insert size: '483'
+      Name: MCF7_CUL2
+      Quality format: standard
+      Sequence length: 30-150
+      Sequences flagged as poor quality: '0'
+      Total reads: '1351401430'

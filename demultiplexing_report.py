@@ -225,7 +225,7 @@ def main():
     #Setup options
     argparser=_prepare_argparser()
     args = argparser.parse_args()
-    r = Demultiplexing_report(args.run_dir, args.conversion_xml)
+    r = Demultiplexing_report(args.run_dirs, args.conversion_xmls)
     if args.send_data:
         r.send_data()
     elif args.style == 'wiki':
@@ -240,8 +240,10 @@ def _prepare_argparser():
     description = """Simple script that parse demultiplexed xml file and generate an wiki table"""
 
     argparser = ArgumentParser(description=description)
-    argparser.add_argument("-c", "--conversion_xml-file", dest="conversion_xml", type=str, help="The ConversionStats.xml to parse.")
-    argparser.add_argument("-r", "--run_dir", dest="run_dir", type=str, help="The directory containing the SampleSheet.csv of the Run.")
+    argparser.add_argument("-c", "--conversion_xml-file", dest="conversion_xmls", type=str, nargs='+',
+                           help="The ConversionStats.xml to parse.")
+    argparser.add_argument("-r", "--run_dir", dest="run_dirs", type=str, nargs='+',
+                           help="The directory containing the SampleSheet.csv of the Run.")
     argparser.add_argument("--style", dest="style", type=str, help="The style of the report.", default='wiki')
     argparser.add_argument("--send_data", dest="send_data", action='store_true', default=False, help="send data to the reporting app instead of printing the report.")
 

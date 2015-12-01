@@ -94,9 +94,9 @@ ELEMENT_NB_READS_PASS_FILTER = Piece_of_info(
     text='Passing filter reads',
     formatter=format_longint
 )
-ELEMENT_NB_READS_ADAPTER_TRIMMED = Piece_of_info(
-    key='initial_reads',
-    text='No adapter reads',
+ELEMENT_NB_READS_IN_BAM = Piece_of_info(
+    key='reads_in_bam',
+    text='Nb reads in bam',
     formatter=format_longint
 )
 ELEMENT_PC_PASS_FILTER = Piece_of_info(
@@ -114,7 +114,7 @@ ELEMENT_PC_MAPPED_READS = Piece_of_info(
     key='pc_mapped_reads',
     text='% mapped reads',
     formatter=format_percent,
-    formula=[divide, ELEMENT_NB_MAPPED_READS, ELEMENT_NB_READS_ADAPTER_TRIMMED]
+    formula=[divide, ELEMENT_NB_MAPPED_READS, ELEMENT_NB_READS_IN_BAM]
 )
 ELEMENT_NB_SEC_MAPPED_READS = Piece_of_info(
     key='Nb secondary alignments',
@@ -123,7 +123,7 @@ ELEMENT_NB_SEC_MAPPED_READS = Piece_of_info(
 ELEMENT_PC_SEC_MAPPED_READS = Piece_of_info(
     key='% secondary alignments',
     formatter=format_percent,
-    formula=[divide, ELEMENT_NB_SEC_MAPPED_READS, ELEMENT_NB_READS_ADAPTER_TRIMMED]
+    formula=[divide, ELEMENT_NB_SEC_MAPPED_READS, ELEMENT_NB_READS_IN_BAM]
 )
 ELEMENT_NB_DUPLICATE_READS = Piece_of_info(
     key='nb_duplicate_reads',

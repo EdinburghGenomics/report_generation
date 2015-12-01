@@ -9,11 +9,12 @@ from report_generation.formaters import format_info
 from report_generation.model import Info, ELEMENT_NB_READS_SEQUENCED, \
     ELEMENT_NB_MAPPED_READS, ELEMENT_NB_DUPLICATE_READS, ELEMENT_NB_PROPERLY_MAPPED, \
     ELEMENT_MEDIAN_COVERAGE, ELEMENT_PC_DUPLICATE_READS, ELEMENT_PC_PROPERLY_MAPPED, \
-    ELEMENT_PC_BASES_CALLABLE, ELEMENT_SAMPLE_INTERNAL_ID, ELEMENT_SAMPLE_EXTERNAL_ID, ELEMENT_NB_READS_PASS_FILTER, \
-    ELEMENT_NB_READS_ADAPTER_TRIMMED, ELEMENT_PC_MAPPED_READS, ELEMENT_PROJECT, ELEMENT_YIELD, \
-    ELEMENT_LIBRARY_INTERNAL_ID, ELEMENT_PC_Q30_R1, ELEMENT_PC_Q30_R2
+    ELEMENT_PC_BASES_CALLABLE, ELEMENT_SAMPLE_INTERNAL_ID, ELEMENT_SAMPLE_EXTERNAL_ID, ELEMENT_NB_READS_PASS_FILTER,\
+    ELEMENT_PC_MAPPED_READS, ELEMENT_PROJECT, ELEMENT_YIELD, \
+    ELEMENT_LIBRARY_INTERNAL_ID, ELEMENT_PC_Q30_R1, ELEMENT_PC_Q30_R2, ELEMENT_NB_BASE, ELEMENT_NB_READS_IN_BAM, \
+    ELEMENT_MEAN_COVERAGE
 from report_generation.readers.mapping_stats_parsers import parse_bamtools_stats, parse_callable_bed_file, \
-    parse_highdepth_yaml_file
+    parse_highdepth_yaml_file, get_nb_sequence_from_fastqc_html
 from report_generation.rest_communication import post_entry, patch_entry
 
 __author__ = 'tcezard'
@@ -21,8 +22,9 @@ __author__ = 'tcezard'
 
 class Bcbio_report:
     headers = [ELEMENT_PROJECT, ELEMENT_SAMPLE_INTERNAL_ID, ELEMENT_SAMPLE_EXTERNAL_ID, ELEMENT_LIBRARY_INTERNAL_ID,
-               ELEMENT_NB_READS_PASS_FILTER, ELEMENT_NB_READS_ADAPTER_TRIMMED, ELEMENT_NB_MAPPED_READS, ELEMENT_PC_MAPPED_READS, ELEMENT_NB_DUPLICATE_READS, ELEMENT_PC_DUPLICATE_READS,
-               ELEMENT_NB_PROPERLY_MAPPED, ELEMENT_PC_PROPERLY_MAPPED, ELEMENT_MEDIAN_COVERAGE,
+               ELEMENT_NB_READS_PASS_FILTER, ELEMENT_NB_READS_IN_BAM, ELEMENT_NB_MAPPED_READS, ELEMENT_PC_MAPPED_READS,
+               ELEMENT_NB_DUPLICATE_READS, ELEMENT_PC_DUPLICATE_READS,
+               ELEMENT_NB_PROPERLY_MAPPED, ELEMENT_PC_PROPERLY_MAPPED, ELEMENT_MEAN_COVERAGE,
                ELEMENT_PC_BASES_CALLABLE, ELEMENT_YIELD, ELEMENT_PC_Q30_R1, ELEMENT_PC_Q30_R2]
 
     def __init__(self, bcbio_dirs):
@@ -42,12 +44,16 @@ class Bcbio_report:
         fastq_file = glob.glob(os.path.join(sample_dir,"*_R1.fastq.gz"))[0]
         external_sample_name = os.path.basename(fastq_file)[:-len("_R1.fastq.gz")]
         lib_info[ELEMENT_SAMPLE_EXTERNAL_ID]= external_sample_name
+        fastqc_file = os.path.join(sample_dir,external_sample_name+"_R1_fastqc.html")
+        if os.path.exists():
+            nb_reads = get_nb_sequence_from_fastqc_html(fastqc_file)
+            lib_info[ELEMENT_NB_READS_PASS_FILTER]= int(nb_reads)
+            lib_info[ELEMENT_NB_BASE]= int(nb_reads)*300
 
         bamtools_path = glob.glob(os.path.join(sample_dir, 'bamtools_stats.txt'))
         if bamtools_path:
             total_reads, mapped_reads, duplicate_reads, proper_pairs = parse_bamtools_stats(bamtools_path[0])
-            lib_info[ELEMENT_NB_READS_PASS_FILTER]= int(total_reads)
-            lib_info[ELEMENT_NB_READS_ADAPTER_TRIMMED]= int(total_reads)
+            lib_info[ELEMENT_NB_READS_IN_BAM]= int(total_reads)
             lib_info[ELEMENT_NB_MAPPED_READS]= int(mapped_reads)
             lib_info[ELEMENT_NB_DUPLICATE_READS]= int(duplicate_reads)
             lib_info[ELEMENT_NB_PROPERLY_MAPPED]= int(proper_pairs)

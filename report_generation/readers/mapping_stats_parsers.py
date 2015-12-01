@@ -1,6 +1,7 @@
 from collections import Counter
 import csv
 import yaml
+import re
 
 __author__ = 'tcezard'
 
@@ -67,3 +68,11 @@ def parse_validate_csv(csv_file):
             elif row.get('variant.type') == 'indel' and row.get('category') == 'discordant-missing-total':
                 indel_disc+=int(row.get('value'))
     return snp_conc, indel_conc, snp_disc, indel_disc
+
+
+def get_nb_sequence_from_fastqc_html(html_file):
+    with open(html_file) as open_file:
+        s = open_file.read()
+        match = re.search('<td>Total Sequences</td><td>(\d+)</td>', s)
+        if match:
+            return int(match.group(1))
