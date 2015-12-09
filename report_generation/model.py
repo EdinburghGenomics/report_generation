@@ -69,6 +69,16 @@ ELEMENT_PROJECT = Piece_of_info(
     text='Project',
     formatter=default_formatter
 )
+ELEMENT_SAMPLE_PLATE = Piece_of_info(
+    key='plate',
+    text='Plate Id',
+    formatter=default_formatter
+)
+ELEMENT_SAMPLE_PLATE_WELL = Piece_of_info(
+    key='well',
+    text='Well',
+    formatter=default_formatter
+)
 ELEMENT_LIBRARY_INTERNAL_ID = Piece_of_info(
     key='library_id',
     text='Library LIMS id',

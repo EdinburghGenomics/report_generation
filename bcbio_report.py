@@ -3,7 +3,8 @@ from argparse import ArgumentParser
 import glob
 import logging
 import os
-import requests
+import re
+from genologics.lims import Lims
 from report_generation.config import Configuration
 from report_generation.formaters import format_info
 from report_generation.model import Info, ELEMENT_NB_READS_SEQUENCED, \
@@ -12,7 +13,7 @@ from report_generation.model import Info, ELEMENT_NB_READS_SEQUENCED, \
     ELEMENT_PC_BASES_CALLABLE, ELEMENT_SAMPLE_INTERNAL_ID, ELEMENT_SAMPLE_EXTERNAL_ID, ELEMENT_NB_READS_PASS_FILTER,\
     ELEMENT_PC_MAPPED_READS, ELEMENT_PROJECT, ELEMENT_YIELD, \
     ELEMENT_LIBRARY_INTERNAL_ID, ELEMENT_PC_Q30_R1, ELEMENT_PC_Q30_R2, ELEMENT_NB_BASE, ELEMENT_NB_READS_IN_BAM, \
-    ELEMENT_MEAN_COVERAGE
+    ELEMENT_MEAN_COVERAGE, ELEMENT_SAMPLE_PLATE, ELEMENT_SAMPLE_PLATE_WELL
 from report_generation.readers.mapping_stats_parsers import parse_bamtools_stats, parse_callable_bed_file, \
     parse_highdepth_yaml_file, get_nb_sequence_from_fastqc_html
 from report_generation.rest_communication import post_entry, patch_entry
@@ -21,7 +22,7 @@ __author__ = 'tcezard'
 
 
 class Bcbio_report:
-    headers = [ELEMENT_PROJECT, ELEMENT_SAMPLE_INTERNAL_ID, ELEMENT_SAMPLE_EXTERNAL_ID, ELEMENT_LIBRARY_INTERNAL_ID,
+    headers = [ELEMENT_PROJECT, ELEMENT_SAMPLE_PLATE, ELEMENT_SAMPLE_PLATE_WELL,ELEMENT_SAMPLE_INTERNAL_ID, ELEMENT_SAMPLE_EXTERNAL_ID, ELEMENT_LIBRARY_INTERNAL_ID,
                ELEMENT_NB_READS_PASS_FILTER, ELEMENT_NB_READS_IN_BAM, ELEMENT_NB_MAPPED_READS, ELEMENT_PC_MAPPED_READS,
                ELEMENT_NB_DUPLICATE_READS, ELEMENT_PC_DUPLICATE_READS,
                ELEMENT_NB_PROPERLY_MAPPED, ELEMENT_PC_PROPERLY_MAPPED, ELEMENT_MEAN_COVERAGE,
@@ -41,6 +42,9 @@ class Bcbio_report:
         lib_info[ELEMENT_SAMPLE_INTERNAL_ID]= sample_name
         lib_info[ELEMENT_LIBRARY_INTERNAL_ID]= sample_name
         lib_info[ELEMENT_PROJECT]= project_name
+        plate, well = self.get_plate_id(sample_name)
+        lib_info[ELEMENT_SAMPLE_PLATE] = plate
+        lib_info[ELEMENT_SAMPLE_PLATE_WELL] = well
         fastq_file = glob.glob(os.path.join(sample_dir,"*_R1.fastq.gz"))[0]
         external_sample_name = os.path.basename(fastq_file)[:-len("_R1.fastq.gz")]
         lib_info[ELEMENT_SAMPLE_EXTERNAL_ID]= external_sample_name
@@ -76,6 +80,25 @@ class Bcbio_report:
         else:
             logging.critical('Missing *%s-sort-callable.bed'%sample_name)
         return lib_info
+
+
+    def get_plate_id_and_well(self, sample_name):
+        cfg = Configuration()
+        lims=Lims(**cfg.get('clarity'))
+        samples = lims.get_samples(name=sample_name)
+        if len(samples) == 0:
+            sample_name_sub = re.sub("_(\d{2})",":\g<1>",sample_name)
+            samples = lims.get_samples(name=sample_name_sub)
+        if len(samples) == 0:
+            sample_name_sub = re.sub("__(\w)_(\d{2})"," _\g<1>:\g<2>",sample_name)
+            samples = lims.get_samples(name=sample_name_sub)
+
+        if len(samples) == 1:
+            plate, well = samples[0].artifact.location
+            return plate.name, well
+        else:
+            return None None
+
 
     def write_report_wiki(self):
         page_lines=[]
