@@ -13,7 +13,7 @@ from report_generation.model import Info, ELEMENT_NB_READS_SEQUENCED, \
     ELEMENT_PC_BASES_CALLABLE, ELEMENT_SAMPLE_INTERNAL_ID, ELEMENT_SAMPLE_EXTERNAL_ID, ELEMENT_NB_READS_PASS_FILTER,\
     ELEMENT_PC_MAPPED_READS, ELEMENT_PROJECT, ELEMENT_YIELD, \
     ELEMENT_LIBRARY_INTERNAL_ID, ELEMENT_PC_Q30_R1, ELEMENT_PC_Q30_R2, ELEMENT_NB_BASE, ELEMENT_NB_READS_IN_BAM, \
-    ELEMENT_MEAN_COVERAGE, ELEMENT_SAMPLE_PLATE, ELEMENT_SAMPLE_PLATE_WELL
+    ELEMENT_MEAN_COVERAGE, ELEMENT_SAMPLE_PLATE, ELEMENT_SAMPLE_PLATE_WELL, ELEMENT_GENDER
 from report_generation.readers.mapping_stats_parsers import parse_bamtools_stats, parse_callable_bed_file, \
     parse_highdepth_yaml_file, get_nb_sequence_from_fastqc_html
 from report_generation.rest_communication import post_entry, patch_entry
@@ -22,13 +22,23 @@ __author__ = 'tcezard'
 
 cfg = Configuration()
 lims=Lims(**cfg.get('clarity'))
+female_alias = ['f', 'female']
+male_alias = ['m', 'male']
+
+def match_gender(gender1, gender2):
+    if gender1.lower() in female_alias and gender2.lower() in female_alias:
+        return  'female'
+    elif gender1.lower() in male_alias and gender2.lower() in male_alias:
+        return 'male'
+    else:
+        return 'mismatch (%s %s)'%(gender1, gender2)
 
 class Bcbio_report:
     headers = [ELEMENT_PROJECT, ELEMENT_SAMPLE_PLATE, ELEMENT_SAMPLE_PLATE_WELL,ELEMENT_SAMPLE_INTERNAL_ID, ELEMENT_SAMPLE_EXTERNAL_ID, ELEMENT_LIBRARY_INTERNAL_ID,
                ELEMENT_NB_READS_PASS_FILTER, ELEMENT_NB_READS_IN_BAM, ELEMENT_NB_MAPPED_READS, ELEMENT_PC_MAPPED_READS,
                ELEMENT_NB_DUPLICATE_READS, ELEMENT_PC_DUPLICATE_READS,
                ELEMENT_NB_PROPERLY_MAPPED, ELEMENT_PC_PROPERLY_MAPPED, ELEMENT_MEAN_COVERAGE,
-               ELEMENT_PC_BASES_CALLABLE, ELEMENT_YIELD, ELEMENT_PC_Q30_R1, ELEMENT_PC_Q30_R2]
+               ELEMENT_PC_BASES_CALLABLE, ELEMENT_YIELD, ELEMENT_PC_Q30_R1, ELEMENT_PC_Q30_R2, ELEMENT_GENDER]
 
     def __init__(self, bcbio_dirs):
         self.bcbio_dirs=bcbio_dirs
@@ -57,6 +67,8 @@ class Bcbio_report:
             lib_info[ELEMENT_NB_BASE]= int(nb_reads)*300
 
         bamtools_path = glob.glob(os.path.join(sample_dir, 'bamtools_stats.txt'))
+        if not bamtools_path:
+            bamtools_path = glob.glob(os.path.join(sample_dir,'.qc', 'bamtools_stats.txt'))
         if bamtools_path:
             total_reads, mapped_reads, duplicate_reads, proper_pairs = parse_bamtools_stats(bamtools_path[0])
             lib_info[ELEMENT_NB_READS_IN_BAM]= int(total_reads)
@@ -65,6 +77,8 @@ class Bcbio_report:
             lib_info[ELEMENT_NB_PROPERLY_MAPPED]= int(proper_pairs)
 
         yaml_metric_paths = glob.glob(os.path.join(sample_dir, '*%s-sort-highdepth-stats.yaml'%external_sample_name))
+        if not yaml_metric_paths:
+            yaml_metric_paths = glob.glob(os.path.join(sample_dir, '.qc', '*%s-sort-highdepth-stats.yaml'%external_sample_name))
         if yaml_metric_paths:
             yaml_metric_path = yaml_metric_paths[0]
             median_coverage  = parse_highdepth_yaml_file(yaml_metric_path)
@@ -73,6 +87,8 @@ class Bcbio_report:
             logging.critical('Missing %s-sort-highdepth-stats.yaml'%sample_name)
 
         bed_file_paths = glob.glob(os.path.join(sample_dir,'*%s-sort-callable.bed'%external_sample_name))
+        if not bed_file_paths:
+            bed_file_paths = glob.glob(os.path.join(sample_dir, '.qc', '*%s-sort-callable.bed'%external_sample_name))
         if bed_file_paths:
             bed_file_path = bed_file_paths[0]
             coverage_per_type = parse_callable_bed_file(bed_file_path)
@@ -81,10 +97,28 @@ class Bcbio_report:
             lib_info[ELEMENT_PC_BASES_CALLABLE]= callable_bases/total
         else:
             logging.critical('Missing *%s-sort-callable.bed'%sample_name)
+
+        sex_file_paths = glob.glob(os.path.join(sample_dir,'%s.sex'%external_sample_name))
+        if not sex_file_paths:
+            sex_file_paths = glob.glob(os.path.join(sample_dir,'.qc','%s.sex'%external_sample_name))
+        if sex_file_paths:
+            with open(sex_file_paths[0]) as open_file:
+                sex = open_file.read().strip()
+                gender_from_lims = self.get_sex_from_lims(sample_name)
+                lib_info[ELEMENT_GENDER]= match_gender(sex, gender_from_lims)
         return lib_info
 
 
     def get_plate_id_and_well(self, sample_name):
+        samples = self.get_samples(sample_name)
+
+        if len(samples) == 1:
+            plate, well = samples[0].artifact.location
+            return plate.name, well
+        else:
+            return None, None
+
+    def get_samples(self, sample_name):
         samples = lims.get_samples(name=sample_name)
         if len(samples) == 0:
             sample_name_sub = re.sub("_(\d{2})",":\g<1>",sample_name)
@@ -92,12 +126,14 @@ class Bcbio_report:
         if len(samples) == 0:
             sample_name_sub = re.sub("__(\w)_(\d{2})"," _\g<1>:\g<2>",sample_name)
             samples = lims.get_samples(name=sample_name_sub)
+        return samples
 
+    def get_sex_from_lims(self, sample_name):
+        samples = self.get_samples(sample_name)
         if len(samples) == 1:
-            plate, well = samples[0].artifact.location
-            return plate.name, well
-        else:
-            return None, None
+            gender = samples[0].udf.get('Gender')
+            return gender
+
 
 
     def write_report_wiki(self):

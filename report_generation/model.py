@@ -329,7 +329,11 @@ ELEMENT_LANE_COEFF_VARIATION = Piece_of_info(
     text='CV',
     formatter=format_float
 )
-
+ELEMENT_GENDER = Piece_of_info(
+    key='gender',
+    text='Gender',
+    formatter=default_formatter
+)
 ALL_PIECES=[
     ELEMENT_RUN_ELEMENT_ID, ELEMENT_PROJECT, ELEMENT_LIBRARY_INTERNAL_ID, ELEMENT_SAMPLE_INTERNAL_ID,
     ELEMENT_SAMPLE_EXTERNAL_ID, ELEMENT_NB_READS_SEQUENCED, ELEMENT_NB_READS_PASS_FILTER,
