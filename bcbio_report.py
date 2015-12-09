@@ -20,6 +20,8 @@ from report_generation.rest_communication import post_entry, patch_entry
 
 __author__ = 'tcezard'
 
+cfg = Configuration()
+lims=Lims(**cfg.get('clarity'))
 
 class Bcbio_report:
     headers = [ELEMENT_PROJECT, ELEMENT_SAMPLE_PLATE, ELEMENT_SAMPLE_PLATE_WELL,ELEMENT_SAMPLE_INTERNAL_ID, ELEMENT_SAMPLE_EXTERNAL_ID, ELEMENT_LIBRARY_INTERNAL_ID,
@@ -42,7 +44,7 @@ class Bcbio_report:
         lib_info[ELEMENT_SAMPLE_INTERNAL_ID]= sample_name
         lib_info[ELEMENT_LIBRARY_INTERNAL_ID]= sample_name
         lib_info[ELEMENT_PROJECT]= project_name
-        plate, well = self.get_plate_id(sample_name)
+        plate, well = self.get_plate_id_and_well(sample_name)
         lib_info[ELEMENT_SAMPLE_PLATE] = plate
         lib_info[ELEMENT_SAMPLE_PLATE_WELL] = well
         fastq_file = glob.glob(os.path.join(sample_dir,"*_R1.fastq.gz"))[0]
@@ -83,8 +85,6 @@ class Bcbio_report:
 
 
     def get_plate_id_and_well(self, sample_name):
-        cfg = Configuration()
-        lims=Lims(**cfg.get('clarity'))
         samples = lims.get_samples(name=sample_name)
         if len(samples) == 0:
             sample_name_sub = re.sub("_(\d{2})",":\g<1>",sample_name)
@@ -97,7 +97,7 @@ class Bcbio_report:
             plate, well = samples[0].artifact.location
             return plate.name, well
         else:
-            return None None
+            return None, None
 
 
     def write_report_wiki(self):
