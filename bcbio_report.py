@@ -45,7 +45,7 @@ class Bcbio_report:
         external_sample_name = os.path.basename(fastq_file)[:-len("_R1.fastq.gz")]
         lib_info[ELEMENT_SAMPLE_EXTERNAL_ID]= external_sample_name
         fastqc_file = os.path.join(sample_dir,external_sample_name+"_R1_fastqc.html")
-        if os.path.exists():
+        if os.path.exists(fastqc_file):
             nb_reads = get_nb_sequence_from_fastqc_html(fastqc_file)
             lib_info[ELEMENT_NB_READS_PASS_FILTER]= int(nb_reads)
             lib_info[ELEMENT_NB_BASE]= int(nb_reads)*300
