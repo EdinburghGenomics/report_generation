@@ -46,12 +46,26 @@ class ProjectReport:
         self.fill_sample_names_from_lims()
         self.samples_delivered = self.read_metrics_csv(os.path.join(self.project_path, 'metrics_summary.csv'))
         self.get_sample_param()
+        self.fill_project_information_from_lims()
+
+    def fill_project_information_from_lims(self):
+        project = self.lims.get_projects(name=self.project_name)[0]
+        self.project_info = {}
+        self.project_info['project_name']=['Project name:',self.project_name]
+        self.project_info['project_title']=['Project title:', project.udf.get('Project Title', '')]
+        self.project_info['enquiry'] = ['Enquiry no:', project.udf.get('Enquiry Number', '')]
+        self.project_info['quote'] = ['Quote no:', project.udf.get('Quote No.', '')]
+        self.project_info['researcher'] = ['Researcher:','%s %s (%s)'%(project.researcher.first_name,
+                                                                       project.researcher.last_name,
+                                                                       project.researcher.email)]
+        self.project_order = ['project_name', 'project_title', 'enquiry', 'quote', 'researcher']
 
 
     def fill_sample_names_from_lims(self):
         samples = self.lims.get_samples(projectname=self.project_name)
         self.samples = [s.name for s in samples]
         self.modified_samples = [re.sub(r'[: ]','_', s.name) for s in samples]
+
 
     def get_library_workflow_from_sample(self, sample_name):
         samples = self.lims.get_samples(projectname=self.project_name, name=sample_name)
@@ -65,8 +79,11 @@ class ProjectReport:
         with open(program_csv) as open_prog:
             for row in csv.reader(open_prog):
                 all_programs[row[0]]=row[1]
-        for p in ['bcbio', 'bwa', 'gatk', 'samblaster']:
+        #TODO: change the hardcoded version of bcl2fastq
+        all_programs['bcl2fastq'] = '2.17.1.14'
+        for p in ['bcl2fastq','bcbio', 'bwa', 'gatk', 'samblaster']:
             self.params[p + '_version']=all_programs.get(p)
+
 
     def parse_project_summary_yaml(self, summary_yaml):
         with open(summary_yaml, 'r') as open_file:
@@ -116,7 +133,6 @@ class ProjectReport:
                     summary_yaml = os.path.join(sample_folder, '.qc', 'project-summary.yaml')
                 self.parse_project_summary_yaml(summary_yaml)
 
-        self.results['project_name']=['Project name:',self.project_name]
         self.results['project_size']=['Total folder size:','%.2fTb'%(project_size/1000000000000.0)]
         self.results['nb_sample']=['Number of sample:', len(self.samples)]
         self.results['nb_sample_delivered']=['Number of sample delivered:',len(self.samples_delivered)]
@@ -125,22 +141,51 @@ class ProjectReport:
         self.results['mean_yield']=['Average yield Gb:','%.1f'%(sum(yields)/max(len(yields), 1))]
         coverage = [float(self.samples_delivered[s]['Mean coverage']) for s in self.samples_delivered]
         self.results['coverage']=['Average coverage per samples:','%.2f'%(sum(coverage)/max(len(coverage), 1))]
-        self.results_order=['project_name','nb_sample','nb_sample_delivered', 'yield', 'mean_yield', 'coverage', 'project_size']
+        self.results_order=['nb_sample','nb_sample_delivered', 'yield', 'mean_yield', 'coverage', 'project_size']
 
 
     def generate_report(self):
         env = Environment(loader=FileSystemLoader('templates'))
         template = env.get_template(self.template)
-        output = template.render(results_order=self.results_order, results=self.results, **self.params)
+        output = template.render(results_order=self.results_order, results=self.results,
+                                 project_info=self.project_info, project_order=self.project_order,
+                                 **self.params)
         pdf = get_pdf(output)
         with open('project_%s_report.pdf'%self.project_name, 'w') as open_pdf:
             open_pdf.write(pdf.getvalue())
 
-    def __str__(self):
-        pass
+
+    def serve(self):
+        import flask
+        app = flask.Flask(__name__)
+        @app.route('/project')
+        def project_report():
+
+            rendered_html = flask.render_template(self.template, results_order=self.results_order, results=self.results,
+                                         project_info=self.project_info, project_order=self.project_order,
+                                         **self.params)
+            pdf = get_pdf(rendered_html)
+
+            with open('project_%s_report.pdf'%self.project_name, 'w') as open_pdf:
+                open_pdf.write(pdf.getvalue())
+            return rendered_html
+        app.config['SERVER_NAME']='localhost:5000'
+        app.run('localhost')
 
 
-
+#class FlaskrTestCase(unittest.TestCase):
+#
+#    def setUp(self):
+#        self.app = flaskr.app.test_client()
+#        flaskr.init_db()
+#
+#    def tearDown(self):
+#        os.close(self.db_fd)
+#        os.unlink(flaskr.app.config['DATABASE'])
+#
+#    def test_empty_db(self):
+#        rv = self.app.get('/')
+#        assert 'No entries here so far' in rv.data
 
 def main():
     #Setup options
@@ -151,7 +196,12 @@ def main():
     handler.setLevel(logging.DEBUG)
     logging.getLogger('xhtml2pdf').addHandler(handler)
     app_logger.addHandler(handler)
-    ProjectReport(args.project_name, args.project_path).generate_report()
+    pr = ProjectReport(args.project_name, args.project_path)
+
+    if args.app:
+        pr.serve()
+    else:
+        pr.generate_report()
 
 def _prepare_argparser():
     """Prepare optparser object. New arguments will be added in this
@@ -164,6 +214,8 @@ def _prepare_argparser():
                            help="The name of the project for which a report should be generated.")
     argparser.add_argument("-P", "--project_path", dest="project_path", type=str,
                            help="The path to the project drectory.")
+    argparser.add_argument("--app", action="store_true", default=False,
+                           help="set the script to serve the report has html instead of generating it ")
 
 
     return argparser
