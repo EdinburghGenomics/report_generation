@@ -170,7 +170,8 @@ class ProjectReport:
 
 
     def generate_report(self):
-        env = Environment(loader=FileSystemLoader('templates'))
+        template_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'templates'))
+        env = Environment(loader=FileSystemLoader(template_dir))
         template = env.get_template(self.template)
         output = template.render(results_order=self.results_order, results=self.results,
                                  project_info=self.project_info, project_order=self.project_order,
