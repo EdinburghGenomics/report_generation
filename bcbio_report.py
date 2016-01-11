@@ -26,12 +26,14 @@ female_alias = ['f', 'female']
 male_alias = ['m', 'male']
 
 def match_gender(gender1, gender2):
+    gender1 = str(gender1).lower()
+    gender2 = str(gender2).lower()
     if gender1.lower() in female_alias and gender2.lower() in female_alias:
         return  'female'
     elif gender1.lower() in male_alias and gender2.lower() in male_alias:
         return 'male'
     else:
-        return 'mismatch (%s %s)'%(gender1, gender2)
+        return 'mismatch (vcf:%s lims:%s)'%(gender1, gender2)
 
 class Bcbio_report:
     headers = [ELEMENT_PROJECT, ELEMENT_SAMPLE_PLATE, ELEMENT_SAMPLE_PLATE_WELL,ELEMENT_SAMPLE_INTERNAL_ID, ELEMENT_SAMPLE_EXTERNAL_ID, ELEMENT_LIBRARY_INTERNAL_ID,

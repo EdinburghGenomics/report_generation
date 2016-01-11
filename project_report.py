@@ -74,6 +74,13 @@ class ProjectReport:
         else:
             app_logger.error('%s samples found for sample name %s'%sample_name)
 
+    def get_species_from_sample(self, sample_name):
+        samples = self.lims.get_samples(projectname=self.project_name, name=sample_name)
+        if len(samples) == 1:
+            return samples[0].udf.get('Species')
+        else:
+            app_logger.error('%s samples found for sample name %s'%sample_name)
+
     def parse_program_csv(self, program_csv):
         all_programs = {}
         with open(program_csv) as open_prog:
@@ -105,16 +112,27 @@ class ProjectReport:
         self.fill_sample_names_from_lims()
         project_size = 0
         library_workflows=set()
+        species = set()
         for sample in self.samples:
             library_workflow = self.get_library_workflow_from_sample(sample)
             library_workflows.add(library_workflow)
+            species.add(self.get_species_from_sample(sample))
         if len(library_workflows) == 1 :
             self.library_workflow = library_workflows.pop()
         else:
-            app_logger.error('More than one workfkow used in project %s'%self.project_name)
+            app_logger.error('More than one workfkow used in project %s: %s'%(self.project_name, ', '.join(library_workflows)))
+
+        if len(species) == 1 :
+            self.species = species.pop()
+        else:
+            app_logger.error('More than one species used in project %s: %s'%(self.project_name, ', '.join(species)))
+
 
         if self.library_workflow in ['TruSeq Nano DNA Sample Prep', None] :
-            self.template = 'truseq_nano_template.html'
+            if self.species == 'Human':
+                self.template = 'truseq_nano_template.html'
+            else:
+                self.template = 'truseq_nano_template_non_human.html'
             self.params['adapter1'] = "AGATCGGAAGAGCACACGTCTGAACTCCAGTCA"
             self.params['adapter2'] = "AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT"
         else:
@@ -127,11 +145,13 @@ class ProjectReport:
                 program_csv = os.path.join(sample_folder, 'programs.txt')
                 if not os.path.exists(program_csv):
                     program_csv = os.path.join(sample_folder, '.qc', 'programs.txt')
-                self.parse_program_csv(program_csv)
+                if os.path.exists(program_csv):
+                    self.parse_program_csv(program_csv)
                 summary_yaml = os.path.join(sample_folder, 'project-summary.yaml')
                 if not os.path.exists(summary_yaml):
                     summary_yaml = os.path.join(sample_folder, '.qc', 'project-summary.yaml')
-                self.parse_project_summary_yaml(summary_yaml)
+                if os.path.exists(summary_yaml):
+                    self.parse_project_summary_yaml(summary_yaml)
 
         self.results['project_size']=['Total folder size:','%.2fTb'%(project_size/1000000000000.0)]
         self.results['nb_sample']=['Number of sample:', len(self.samples)]
@@ -139,9 +159,14 @@ class ProjectReport:
         yields = [float(self.samples_delivered[s]['Yield']) for s in self.samples_delivered]
         self.results['yield']=['Total yield Gb:','%.2f'%sum(yields)]
         self.results['mean_yield']=['Average yield Gb:','%.1f'%(sum(yields)/max(len(yields), 1))]
-        coverage = [float(self.samples_delivered[s]['Mean coverage']) for s in self.samples_delivered]
-        self.results['coverage']=['Average coverage per samples:','%.2f'%(sum(coverage)/max(len(coverage), 1))]
-        self.results_order=['nb_sample','nb_sample_delivered', 'yield', 'mean_yield', 'coverage', 'project_size']
+
+        try:
+            coverage = [float(self.samples_delivered[s]['Mean coverage']) for s in self.samples_delivered]
+            self.results['coverage']=['Average coverage per samples:','%.2f'%(sum(coverage)/max(len(coverage), 1))]
+            self.results_order=['nb_sample','nb_sample_delivered', 'yield', 'mean_yield', 'coverage', 'project_size']
+        except KeyError:
+            self.results_order=['nb_sample','nb_sample_delivered', 'yield', 'mean_yield', 'project_size']
+
 
 
     def generate_report(self):
