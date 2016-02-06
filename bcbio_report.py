@@ -116,8 +116,8 @@ class Bcbio_report:
             total_snps = sum(samples[sample_name].values())
             no_call = samples[sample_name].get('no_call_seq') + samples[sample_name].get('no_call_chip')
             matching = samples[sample_name].get('matching_snps')
-            lib_info[ELEMENT_GENOTYPE_PC_CALL] = float(no_call) / float(total)
-            lib_info[ELEMENT_GENOTYPE_PC_MATCH] = float(matching) / float(total)
+            lib_info[ELEMENT_GENOTYPE_PC_CALL] = float(no_call) / float(total_snps)
+            lib_info[ELEMENT_GENOTYPE_PC_MATCH] = float(matching) / float(total_snps)
         return lib_info
 
 
