@@ -13,9 +13,10 @@ from report_generation.model import Info, ELEMENT_NB_READS_SEQUENCED, \
     ELEMENT_PC_BASES_CALLABLE, ELEMENT_SAMPLE_INTERNAL_ID, ELEMENT_SAMPLE_EXTERNAL_ID, ELEMENT_NB_READS_PASS_FILTER,\
     ELEMENT_PC_MAPPED_READS, ELEMENT_PROJECT, ELEMENT_YIELD, \
     ELEMENT_LIBRARY_INTERNAL_ID, ELEMENT_PC_Q30_R1, ELEMENT_PC_Q30_R2, ELEMENT_NB_BASE, ELEMENT_NB_READS_IN_BAM, \
-    ELEMENT_MEAN_COVERAGE, ELEMENT_SAMPLE_PLATE, ELEMENT_SAMPLE_PLATE_WELL, ELEMENT_GENDER
+    ELEMENT_MEAN_COVERAGE, ELEMENT_SAMPLE_PLATE, ELEMENT_SAMPLE_PLATE_WELL, ELEMENT_GENDER, ELEMENT_GENOTYPE_PC_CALL, \
+    ELEMENT_GENOTYPE_PC_MATCH
 from report_generation.readers.mapping_stats_parsers import parse_bamtools_stats, parse_callable_bed_file, \
-    parse_highdepth_yaml_file, get_nb_sequence_from_fastqc_html
+    parse_highdepth_yaml_file, get_nb_sequence_from_fastqc_html, parse_genotype_concordance
 from report_generation.rest_communication import post_entry, patch_entry
 
 __author__ = 'tcezard'
@@ -40,7 +41,8 @@ class Bcbio_report:
                ELEMENT_NB_READS_PASS_FILTER, ELEMENT_NB_READS_IN_BAM, ELEMENT_NB_MAPPED_READS, ELEMENT_PC_MAPPED_READS,
                ELEMENT_NB_DUPLICATE_READS, ELEMENT_PC_DUPLICATE_READS,
                ELEMENT_NB_PROPERLY_MAPPED, ELEMENT_PC_PROPERLY_MAPPED, ELEMENT_MEAN_COVERAGE,
-               ELEMENT_PC_BASES_CALLABLE, ELEMENT_YIELD, ELEMENT_PC_Q30_R1, ELEMENT_PC_Q30_R2, ELEMENT_GENDER]
+               ELEMENT_PC_BASES_CALLABLE, ELEMENT_YIELD, ELEMENT_PC_Q30_R1, ELEMENT_PC_Q30_R2, ELEMENT_GENDER,
+               ELEMENT_GENOTYPE_PC_CALL, ELEMENT_GENOTYPE_PC_MATCH]
 
     def __init__(self, bcbio_dirs):
         self.bcbio_dirs=bcbio_dirs
@@ -108,6 +110,14 @@ class Bcbio_report:
                 sex = open_file.read().strip()
                 gender_from_lims = self.get_sex_from_lims(sample_name)
                 lib_info[ELEMENT_GENDER]= match_gender(sex, gender_from_lims)
+        genotype_file_paths = glob.glob(os.path.join(sample_dir,'%s_genotype_validation.txt'%external_sample_name))
+        if genotype_file_paths:
+            samples = parse_genotype_concordance(genotype_file_paths[0])
+            total_snps = sum(samples[sample_name].values())
+            no_call = samples[sample_name].get('no_call_seq') + samples[sample_name].get('no_call_chip')
+            matching = samples[sample_name].get('matching_snps')
+            lib_info[ELEMENT_GENOTYPE_PC_CALL] = float(no_call) / float(total)
+            lib_info[ELEMENT_GENOTYPE_PC_MATCH] = float(matching) / float(total)
         return lib_info
 
 

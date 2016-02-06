@@ -98,7 +98,7 @@ class ProjectReport:
         sample_yaml=full_yaml['samples'][0]
         self.params['bcbio_version'] = os.path.basename(os.path.dirname(sample_yaml['dirs']['galaxy'])).split('-')[1]
         if sample_yaml['genome_build'] == 'hg38':
-            self.params['genome_version'] = 'GRCh38'
+            self.params['genome_version'] = 'GRCh38 (with decoy and HLA)'
 
     def read_metrics_csv(self, metrics_csv):
         samples_to_info={}
