@@ -13,8 +13,8 @@ from report_generation.model import Info, ELEMENT_NB_READS_SEQUENCED, \
     ELEMENT_PC_BASES_CALLABLE, ELEMENT_SAMPLE_INTERNAL_ID, ELEMENT_SAMPLE_EXTERNAL_ID, ELEMENT_NB_READS_PASS_FILTER,\
     ELEMENT_PC_MAPPED_READS, ELEMENT_PROJECT, ELEMENT_YIELD, \
     ELEMENT_LIBRARY_INTERNAL_ID, ELEMENT_PC_Q30_R1, ELEMENT_PC_Q30_R2, ELEMENT_NB_BASE, ELEMENT_NB_READS_IN_BAM, \
-    ELEMENT_MEAN_COVERAGE, ELEMENT_SAMPLE_PLATE, ELEMENT_SAMPLE_PLATE_WELL, ELEMENT_GENDER, ELEMENT_GENOTYPE_PC_CALL, \
-    ELEMENT_GENOTYPE_PC_MATCH
+    ELEMENT_MEAN_COVERAGE, ELEMENT_SAMPLE_PLATE, ELEMENT_SAMPLE_PLATE_WELL, ELEMENT_GENDER, ELEMENT_GENOTYPE_PC_NOCALL, \
+    ELEMENT_GENOTYPE_PC_MISMATCH
 from report_generation.readers.mapping_stats_parsers import parse_bamtools_stats, parse_callable_bed_file, \
     parse_highdepth_yaml_file, get_nb_sequence_from_fastqc_html, parse_genotype_concordance
 from report_generation.rest_communication import post_entry, patch_entry
@@ -37,12 +37,12 @@ def match_gender(gender1, gender2):
         return 'mismatch (vcf:%s lims:%s)'%(gender1, gender2)
 
 class Bcbio_report:
-    headers = [ELEMENT_PROJECT, ELEMENT_SAMPLE_PLATE, ELEMENT_SAMPLE_PLATE_WELL,ELEMENT_SAMPLE_INTERNAL_ID, ELEMENT_SAMPLE_EXTERNAL_ID, ELEMENT_LIBRARY_INTERNAL_ID,
+    headers = [ELEMENT_PROJECT, ELEMENT_SAMPLE_PLATE, ELEMENT_SAMPLE_PLATE_WELL, ELEMENT_SAMPLE_INTERNAL_ID, ELEMENT_SAMPLE_EXTERNAL_ID, ELEMENT_LIBRARY_INTERNAL_ID,
                ELEMENT_NB_READS_PASS_FILTER, ELEMENT_NB_READS_IN_BAM, ELEMENT_NB_MAPPED_READS, ELEMENT_PC_MAPPED_READS,
                ELEMENT_NB_DUPLICATE_READS, ELEMENT_PC_DUPLICATE_READS,
                ELEMENT_NB_PROPERLY_MAPPED, ELEMENT_PC_PROPERLY_MAPPED, ELEMENT_MEAN_COVERAGE,
                ELEMENT_PC_BASES_CALLABLE, ELEMENT_YIELD, ELEMENT_PC_Q30_R1, ELEMENT_PC_Q30_R2, ELEMENT_GENDER,
-               ELEMENT_GENOTYPE_PC_CALL, ELEMENT_GENOTYPE_PC_MATCH]
+               ELEMENT_GENOTYPE_PC_NOCALL, ELEMENT_GENOTYPE_PC_MATCH]
 
     def __init__(self, bcbio_dirs):
         self.bcbio_dirs=bcbio_dirs
@@ -116,8 +116,8 @@ class Bcbio_report:
             total_snps = sum(samples[sample_name].values())
             no_call = samples[sample_name].get('no_call_seq') + samples[sample_name].get('no_call_chip')
             matching = samples[sample_name].get('matching_snps')
-            lib_info[ELEMENT_GENOTYPE_PC_CALL] = float(no_call) / float(total_snps)
-            lib_info[ELEMENT_GENOTYPE_PC_MATCH] = float(matching) / float(total_snps)
+            lib_info[ELEMENT_GENOTYPE_PC_NOCALL] = float(no_call) / float(total_snps)
+            lib_info[ELEMENT_GENOTYPE_PC_MISMATCH] = float(matching) / float(total_snps)
         return lib_info
 
 

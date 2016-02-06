@@ -334,14 +334,14 @@ ELEMENT_GENDER = Piece_of_info(
     text='Gender',
     formatter=default_formatter
 )
-ELEMENT_GENOTYPE_PC_CALL = Piece_of_info(
-    key='genotype_pc_call',
-    text='Call rate',
+ELEMENT_GENOTYPE_PC_NOCALL = Piece_of_info(
+    key='genotype_pc_nocall',
+    text='No call rate',
     formatter=format_percent
 )
-ELEMENT_GENOTYPE_PC_MATCH = Piece_of_info(
-    key='genotype_pc_match',
-    text='Match rate',
+ELEMENT_GENOTYPE_PC_MISMATCH = Piece_of_info(
+    key='genotype_pc_mismatch',
+    text='Mismatch rate',
     formatter=format_percent
 )
 ALL_PIECES=[
