@@ -299,19 +299,19 @@ ELEMENT_PC_Q30 = Piece_of_info(
     key='pc_q30',
     text='%Q30',
     formatter=format_percent,
-    formula=[divide, ELEMENT_NB_Q30,ELEMENT_NB_BASE]
+    formula=[divide, ELEMENT_NB_Q30, ELEMENT_NB_BASE]
 )
 ELEMENT_PC_Q30_R1 = Piece_of_info(
     key='pc_q30_r1',
     text='%Q30 R1',
     formatter=format_percent,
-    formula=[divide, ELEMENT_NB_Q30_R1,ELEMENT_NB_BASE_R1])
+    formula=[divide, ELEMENT_NB_Q30_R1, ELEMENT_NB_BASE_R1])
 
 ELEMENT_PC_Q30_R2 = Piece_of_info(
     key='pc_q30_r2',
     text='%Q30 R2',
     formatter=format_percent,
-    formula=[divide, ELEMENT_NB_Q30_R2,ELEMENT_NB_BASE_R2]
+    formula=[divide, ELEMENT_NB_Q30_R2, ELEMENT_NB_BASE_R2]
 )
 ELEMENT_YIELD = Piece_of_info(
     key='yield_in_gb',
@@ -333,6 +333,16 @@ ELEMENT_GENDER = Piece_of_info(
     key='gender',
     text='Gender',
     formatter=default_formatter
+)
+ELEMENT_GENOTYPE_PC_CALL = Piece_of_info(
+    key='genotype_pc_call',
+    text='Call rate',
+    formatter=format_percent
+)
+ELEMENT_GENOTYPE_PC_MATCH = Piece_of_info(
+    key='genotype_pc_match',
+    text='Match rate',
+    formatter=format_percent
 )
 ALL_PIECES=[
     ELEMENT_RUN_ELEMENT_ID, ELEMENT_PROJECT, ELEMENT_LIBRARY_INTERNAL_ID, ELEMENT_SAMPLE_INTERNAL_ID,
