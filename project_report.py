@@ -9,7 +9,7 @@ import sys
 import os
 from xhtml2pdf import pisa
 from jinja2 import Environment, FileSystemLoader
-from report_generation.config import Configuration
+from report_generation.config import EnvConfiguration
 import yaml
 
 __author__ = 'tcezard'
@@ -23,7 +23,7 @@ def get_pdf(html_string):
     pisa.CreatePDF(StringIO(html_string), pdf)
     return pdf
 
-cfg = Configuration()
+cfg = EnvConfiguration()
 
 def getFolderSize(folder):
     total_size = os.path.getsize(folder)
@@ -37,14 +37,15 @@ def getFolderSize(folder):
 
 class ProjectReport:
 
-    def __init__(self, project_name, project_path):
+    def __init__(self, project_name):
         self.project_name = project_name
-        self.project_path = project_path
+        self.project_source = os.path.join(cfg.query('sample','delivery_source'), project_name)
+        self.project_delivery = os.path.join(cfg.query('sample','delivery_dest'), project_name)
         self.lims=Lims(**cfg.get('clarity'))
         self.params = {'project_name':project_name}
         self.results = {}
         self.fill_sample_names_from_lims()
-        self.samples_delivered = self.read_metrics_csv(os.path.join(self.project_path, 'metrics_summary.csv'))
+        self.samples_delivered = self.read_metrics_csv(os.path.join(self.project_source, 'summary_metrics.csv'))
         self.get_sample_param()
         self.fill_project_information_from_lims()
 
@@ -137,19 +138,23 @@ class ProjectReport:
             self.params['adapter2'] = "AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT"
         else:
             app_logger.error('Unknown library workflow %s for project %s'%(self.library_workflow, self.project_name))
+            return None
+
         for sample in set(self.modified_samples):
-            sample_folder=os.path.join(self.project_path, sample)
-            if os.path.exists(sample_folder):
-                size = getFolderSize(sample_folder)
+            sample_source=os.path.join(self.project_source, sample)
+            sample_delivery=os.path.join(self.project_delivery, sample)
+            if os.path.exists(sample_delivery):
+                size = getFolderSize(sample_delivery)
                 project_size += size
-                program_csv = os.path.join(sample_folder, 'programs.txt')
+            if os.path.exists(sample_source):
+                program_csv = os.path.join(sample_source, 'programs.txt')
                 if not os.path.exists(program_csv):
-                    program_csv = os.path.join(sample_folder, '.qc', 'programs.txt')
+                    program_csv = os.path.join(sample_source, '.qc', 'programs.txt')
                 if os.path.exists(program_csv):
                     self.parse_program_csv(program_csv)
-                summary_yaml = os.path.join(sample_folder, 'project-summary.yaml')
+                summary_yaml = os.path.join(sample_source, 'project-summary.yaml')
                 if not os.path.exists(summary_yaml):
-                    summary_yaml = os.path.join(sample_folder, '.qc', 'project-summary.yaml')
+                    summary_yaml = os.path.join(sample_source, '.qc', 'project-summary.yaml')
                 if os.path.exists(summary_yaml):
                     self.parse_project_summary_yaml(summary_yaml)
 
@@ -181,38 +186,6 @@ class ProjectReport:
             open_pdf.write(pdf.getvalue())
 
 
-    def serve(self):
-        import flask
-        app = flask.Flask(__name__)
-        @app.route('/project')
-        def project_report():
-
-            rendered_html = flask.render_template(self.template, results_order=self.results_order, results=self.results,
-                                         project_info=self.project_info, project_order=self.project_order,
-                                         **self.params)
-            pdf = get_pdf(rendered_html)
-
-            with open('project_%s_report.pdf'%self.project_name, 'w') as open_pdf:
-                open_pdf.write(pdf.getvalue())
-            return rendered_html
-        app.config['SERVER_NAME']='localhost:5000'
-        app.run('localhost')
-
-
-#class FlaskrTestCase(unittest.TestCase):
-#
-#    def setUp(self):
-#        self.app = flaskr.app.test_client()
-#        flaskr.init_db()
-#
-#    def tearDown(self):
-#        os.close(self.db_fd)
-#        os.unlink(flaskr.app.config['DATABASE'])
-#
-#    def test_empty_db(self):
-#        rv = self.app.get('/')
-#        assert 'No entries here so far' in rv.data
-
 def main():
     #Setup options
     argparser=_prepare_argparser()
@@ -223,11 +196,7 @@ def main():
     logging.getLogger('xhtml2pdf').addHandler(handler)
     app_logger.addHandler(handler)
     pr = ProjectReport(args.project_name, args.project_path)
-
-    if args.app:
-        pr.serve()
-    else:
-        pr.generate_report()
+    pr.generate_report()
 
 def _prepare_argparser():
     """Prepare optparser object. New arguments will be added in this
@@ -238,10 +207,6 @@ def _prepare_argparser():
     argparser = ArgumentParser(description=description)
     argparser.add_argument("-p", "--project_name", dest="project_name", type=str,
                            help="The name of the project for which a report should be generated.")
-    argparser.add_argument("-P", "--project_path", dest="project_path", type=str,
-                           help="The path to the project drectory.")
-    argparser.add_argument("--app", action="store_true", default=False,
-                           help="set the script to serve the report has html instead of generating it ")
 
 
     return argparser
