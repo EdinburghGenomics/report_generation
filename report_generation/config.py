@@ -1,78 +1,77 @@
 import os
 import yaml
 
-
 class Configuration:
-    def __init__(self, config_file=None):
-        self.environment = os.getenv('REPORTGENERATIONENV', 'development')
-        if not config_file:
-            config_file = self._find_config_file()
-        self.config_file = config_file
+    def __init__(self, cfg_search_path):
+        self.cfg_search_path = cfg_search_path
+        self.config_file = self._find_config_file(self.cfg_search_path)
+        self.content = yaml.safe_load(open(self.config_file, 'r'))
 
-        full_config = yaml.safe_load(open(self.config_file, 'r'))
-        if not full_config.get(self.environment):
-            raise Exception('Could not find \'%s\' environment in %s'%(self.environment, self.config_file))
+    @staticmethod
+    def _find_config_file(search_path):
+        for p in search_path:
+            if p and os.path.isfile(p):
+                return p
+        raise Exception('Could not find config file in self.cfg_search_path')
 
-        self.content = full_config[self.environment]
-
-    def get(self, item, return_default=None):
+    def get(self, item, ret_default=None):
         """
         Dict-style item retrieval with default
         :param item: The key to search for
-        :param return_default: What to return if the key is not present
+        :param ret_default: What to return if the key is not present
         """
         try:
             return self[item]
         except KeyError:
-            return return_default
+            return ret_default
 
-    def query(self, *parts):
+    def query(self, *parts, top_level=None, ret_default=None):
         """
         Drill down into a config, e.g. cfg.query('logging', 'handlers', 'a_handler', 'level')
         :return: The relevant item if it exists in the config, else None.
         """
+        if top_level is None:
+            top_level = self.content
         item = None
 
         for p in parts:
-            item = self.content.get(p)
+            item = top_level.get(p)
             if item:
                 top_level = item
             else:
-                return None
+                return ret_default
+
         return item
 
     def report(self):
         return yaml.safe_dump(self.content, default_flow_style=False)
 
-    @classmethod
-    def validate_file_paths(cls, content=None):
+    def __getitem__(self, item):
         """
-        Recursively search through the values of self.content and if the value is an absolute file path,
-        assert that it exists.
-        :param content: a dict, list or str (i.e. potential file path) to validate
+        Allow dict-style access, e.g. config['this'] or config['this']['that']
         """
-        invalid_file_paths = []
-        if type(content) is dict:
-            for v in content.values():
-                invalid_file_paths.extend(cls.validate_file_paths(v))
-        elif type(content) is list:
-            for v in content:
-                invalid_file_paths.extend(cls.validate_file_paths(v))
-        elif type(content) is str:
-            if content.startswith('/') and not os.path.exists(content):
-                invalid_file_paths.append(content)
-        return invalid_file_paths
+        return self.content[item]
 
-    @staticmethod
-    def _find_config_file():
+    def __contains__(self, item):
         """
-        Find config file several places
-        :return: Path to the config
+        Allow search in the first layer of the config with "in" operator
         """
-        for config in [os.getenv('REPORTGENERATIONCONFIG'), os.path.expanduser('~/.reportgeneration.yaml')]:
-            if config and os.path.isfile(config):
-                return config
-        raise Exception('Could not find config file in env variable or home')
+        return self.content.__contains__(item)
+
+
+class EnvConfiguration(Configuration):
+    def __init__(self, cfg_search_path=None):
+        if not cfg_search_path:
+            cfg_search_path = [
+                os.getenv('REPORTGENERATIONCONFIG'),
+                os.path.expanduser('~/.reportgeneration.yaml')
+            ]
+        super().__init__(cfg_search_path)
+        env = os.getenv('REPORTGENERATIONENV', 'development')
+        if self.content.get('default'):
+            self.content = dict(self._merge_dicts(self.content['default'], self.content[env]))
+        else:
+            self.content = self.content[env]
 
     @classmethod
     def _merge_dicts(cls, default_dict, override_dict):
@@ -90,8 +89,9 @@ class Configuration:
             else:
                 yield k, override_dict[k]
 
-    def __getitem__(self, item):
+    def merge(self, override_dict):
         """
-        Allow dict-style access, e.g. config['this'] or config['this']['that']
+        Merge the provided dict with the config content potententially overiding existing parameters
         """
-        return self.content[item]
+        self.content = dict(self._merge_dicts(self.content, override_dict))
+
