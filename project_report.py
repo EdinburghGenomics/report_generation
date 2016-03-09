@@ -45,7 +45,7 @@ class ProjectReport:
         self.params = {'project_name':project_name}
         self.results = {}
         self.fill_sample_names_from_lims()
-        self.samples_delivered = self.read_metrics_csv(os.path.join(self.project_source, 'summary_metrics.csv'))
+        self.samples_delivered = self.read_metrics_csv(os.path.join(self.project_delivery, 'summary_metrics.csv'))
         self.get_sample_param()
         self.fill_project_information_from_lims()
 
@@ -182,6 +182,7 @@ class ProjectReport:
                                  project_info=self.project_info, project_order=self.project_order,
                                  **self.params)
         pdf = get_pdf(output)
+        project_file = os.path.join(self.project_delivery, 'project_%s_report.pdf'%self.project_name
         with open('project_%s_report.pdf'%self.project_name, 'w') as open_pdf:
             open_pdf.write(pdf.getvalue())
 
@@ -195,7 +196,7 @@ def main():
     handler.setLevel(logging.DEBUG)
     logging.getLogger('xhtml2pdf').addHandler(handler)
     app_logger.addHandler(handler)
-    pr = ProjectReport(args.project_name, args.project_path)
+    pr = ProjectReport(args.project_name)
     pr.generate_report()
 
 def _prepare_argparser():

@@ -1,7 +1,7 @@
 import os
 import yaml
 
-class Configuration:
+class Configuration(object):
     def __init__(self, cfg_search_path):
         self.cfg_search_path = cfg_search_path
         self.config_file = self._find_config_file(self.cfg_search_path)
@@ -63,7 +63,7 @@ class EnvConfiguration(Configuration):
                 os.getenv('REPORTGENERATIONCONFIG'),
                 os.path.expanduser('~/.reportgeneration.yaml')
             ]
-        super().__init__(cfg_search_path)
+        super(EnvConfiguration, self).__init__(cfg_search_path)
         env = os.getenv('REPORTGENERATIONENV', 'development')
         if self.content.get('default'):
             self.content = dict(self._merge_dicts(self.content['default'], self.content[env]))
