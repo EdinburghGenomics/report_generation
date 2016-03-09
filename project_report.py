@@ -182,8 +182,8 @@ class ProjectReport:
                                  project_info=self.project_info, project_order=self.project_order,
                                  **self.params)
         pdf = get_pdf(output)
-        project_file = os.path.join(self.project_delivery, 'project_%s_report.pdf'%self.project_name
-        with open('project_%s_report.pdf'%self.project_name, 'w') as open_pdf:
+        project_file = os.path.join(self.project_delivery, 'project_%s_report.pdf'%self.project_name)
+        with open(project_file, 'w') as open_pdf:
             open_pdf.write(pdf.getvalue())
 
 
