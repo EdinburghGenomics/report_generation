@@ -139,13 +139,9 @@ class ProjectReport:
         else:
             app_logger.error('Unknown library workflow %s for project %s'%(self.library_workflow, self.project_name))
             return None
-
+        project_size = getFolderSize(self.project_delivery)
         for sample in set(self.modified_samples):
             sample_source=os.path.join(self.project_source, sample)
-            sample_delivery=os.path.join(self.project_delivery, sample)
-            if os.path.exists(sample_delivery):
-                size = getFolderSize(sample_delivery)
-                project_size += size
             if os.path.exists(sample_source):
                 program_csv = os.path.join(sample_source, 'programs.txt')
                 if not os.path.exists(program_csv):
