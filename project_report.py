@@ -84,14 +84,16 @@ class ProjectReport:
 
     def parse_program_csv(self, program_csv):
         all_programs = {}
-        with open(program_csv) as open_prog:
-            for row in csv.reader(open_prog):
-                all_programs[row[0]]=row[1]
+        if os.path.exists(program_csv):
+            with open(program_csv) as open_prog:
+                for row in csv.reader(open_prog):
+                    all_programs[row[0]]=row[1]
         #TODO: change the hardcoded version of bcl2fastq
         all_programs['bcl2fastq'] = '2.17.1.14'
         for p in ['bcl2fastq','bcbio', 'bwa', 'gatk', 'samblaster']:
-            self.params[p + '_version']=all_programs.get(p)
-
+            if p in all_programs:
+                self.params[p + '_version']=all_programs.get(p)
+        
 
     def parse_project_summary_yaml(self, summary_yaml):
         with open(summary_yaml, 'r') as open_file:
@@ -99,7 +101,7 @@ class ProjectReport:
         sample_yaml=full_yaml['samples'][0]
         self.params['bcbio_version'] = os.path.basename(os.path.dirname(sample_yaml['dirs']['galaxy'])).split('-')[1]
         if sample_yaml['genome_build'] == 'hg38':
-            self.params['genome_version'] = 'GRCh38 (with decoy and HLA)'
+            self.params['genome_version'] = 'GRCh38 (with alt, decoy and HLA sequences)'
 
     def read_metrics_csv(self, metrics_csv):
         samples_to_info={}
@@ -146,8 +148,7 @@ class ProjectReport:
                 program_csv = os.path.join(sample_source, 'programs.txt')
                 if not os.path.exists(program_csv):
                     program_csv = os.path.join(sample_source, '.qc', 'programs.txt')
-                if os.path.exists(program_csv):
-                    self.parse_program_csv(program_csv)
+                self.parse_program_csv(program_csv)
                 summary_yaml = os.path.join(sample_source, 'project-summary.yaml')
                 if not os.path.exists(summary_yaml):
                     summary_yaml = os.path.join(sample_source, '.qc', 'project-summary.yaml')
