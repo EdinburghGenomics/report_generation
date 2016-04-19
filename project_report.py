@@ -132,15 +132,21 @@ class ProjectReport:
 
 
         if self.library_workflow in ['TruSeq Nano DNA Sample Prep', None] :
-            if self.species == 'Human':
-                self.template = 'truseq_nano_template.html'
-            else:
-                self.template = 'truseq_nano_template_non_human.html'
-            self.params['adapter1'] = "AGATCGGAAGAGCACACGTCTGAACTCCAGTCA"
-            self.params['adapter2'] = "AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT"
+            self.template = 'truseq_nano_template'
+        elif self.library_workflow == 'TruSeq PCR-Free DNA Sample Prep':
+            self.template = 'truseq_pcrfree_template'
         else:
             app_logger.error('Unknown library workflow %s for project %s'%(self.library_workflow, self.project_name))
             return None
+
+        if self.species == 'Human':
+            self.template += '.html'
+        else:
+            self.template += '_non_human.html'
+
+        self.params['adapter1'] = "AGATCGGAAGAGCACACGTCTGAACTCCAGTCA"
+        self.params['adapter2'] = "AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT"
+
         project_size = getFolderSize(self.project_delivery)
         for sample in set(self.modified_samples):
             sample_source=os.path.join(self.project_source, sample)
