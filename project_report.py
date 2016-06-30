@@ -16,7 +16,10 @@ __author__ = 'tcezard'
 
 
 app_logger = logging.getLogger(__name__)
-
+species_alias = {
+    'Homo sapiens': 'Human',
+    'Human': 'Human'
+}
 def get_pdf(html_string):
     pdf = StringIO()
     html_string = html_string.encode('utf-8')
@@ -78,7 +81,8 @@ class ProjectReport:
     def get_species_from_sample(self, sample_name):
         samples = self.lims.get_samples(projectname=self.project_name, name=sample_name)
         if len(samples) == 1:
-            return samples[0].udf.get('Species')
+            s = samples[0].udf.get('Species')
+            return species_alias.get(s, s)
         else:
             app_logger.error('%s samples found for sample name %s'%sample_name)
 
@@ -99,7 +103,8 @@ class ProjectReport:
         with open(summary_yaml, 'r') as open_file:
             full_yaml = yaml.safe_load(open_file)
         sample_yaml=full_yaml['samples'][0]
-        self.params['bcbio_version'] = os.path.basename(os.path.dirname(sample_yaml['dirs']['galaxy'])).split('-')[1]
+        path_to_bcbio = os.path.basename(os.path.dirname(sample_yaml['dirs']['galaxy']))
+        self.params['bcbio_version'] = path_to_bcbio.split('/')[-2]
         if sample_yaml['genome_build'] == 'hg38':
             self.params['genome_version'] = 'GRCh38 (with alt, decoy and HLA sequences)'
 
@@ -133,7 +138,7 @@ class ProjectReport:
 
         if self.library_workflow in ['TruSeq Nano DNA Sample Prep', None] :
             self.template = 'truseq_nano_template'
-        elif self.library_workflow == 'TruSeq PCR-Free DNA Sample Prep':
+        elif self.library_workflow in ['TruSeq PCR-Free DNA Sample Prep', 'TruSeq PCR-Free Sample Prep'] :
             self.template = 'truseq_pcrfree_template'
         else:
             app_logger.error('Unknown library workflow %s for project %s'%(self.library_workflow, self.project_name))
